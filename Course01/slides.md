@@ -257,6 +257,116 @@ Good for: cohort size, health economics, causal studies. Bad for: physiology.
 - Multiple testing everywhere
 - Week 12 (survival on TCGA)
 
+## Tabular — one row per unit, `n × p`
+
+:::::: columns
+::: column
+**Healthcare** — ward interventions
+
+![](img/tabular_medical.jpg)
+:::
+::: column
+**Elsewhere** — a ship's passenger manifest
+
+![](img/tabular_other.jpg)
+:::
+::::::
+
+::: notes
+The workhorse: gradient boosting still wins here more often than deep learning.
+The hard part is never the model, it is deciding what one row *is*.
+Left: Cortejoso et al., Clin Interv Aging (CC BY 3.0).
+Right: US Bureau of Immigration, 1912 (CC0) — the Titanic dataset you have all seen.
+:::
+
+## 1D signals — a value over time, `n × T`
+
+:::::: columns
+::: column
+**Healthcare** — a 12-lead ECG
+
+![](img/signal_medical.jpg)
+:::
+::: column
+**Elsewhere** — an audio waveform
+
+![](img/signal_other.jpg)
+:::
+::::::
+
+::: notes
+Same object: a regularly sampled sequence. Same toolbox: filtering, spectrograms,
+1D convolutions, transformers. The ECG is 500 Hz, the audio 44.1 kHz — three orders
+of magnitude apart, identical methods.
+Left: Glenlarson (public domain). Right: Em3rgent0rdr (CC BY-SA 4.0).
+:::
+
+## 2D images — a grid of pixels, `H × W × C`
+
+:::::: columns
+::: column
+**Healthcare** — a chest radiograph
+
+![](img/image2d_medical.jpg)
+:::
+::: column
+**Elsewhere** — a satellite view of farmland
+
+![](img/image2d_other.jpg)
+:::
+::::::
+
+::: notes
+Both are arrays of numbers on a grid, and a CNN or a ViT does not know the difference.
+What differs is the *label*: "pneumonia" is one radiologist's opinion, "wheat" is
+ground truth you can go and check.
+Left: Mikael Häggström (CC0). Right: NASA/ASTER, Kansas (public domain).
+:::
+
+## 3D volumes — a stack of slices, `D × H × W`
+
+:::::: columns
+::: column
+**Healthcare** — a head CT, three planes
+
+![](img/volume3d_medical.jpg)
+:::
+::: column
+**Elsewhere** — a LiDAR point cloud
+
+![](img/volume3d_other.jpg)
+:::
+::::::
+
+::: notes
+The third dimension costs you: memory grows cubically, labelled data gets scarcer,
+and pretrained weights are far rarer than in 2D. Note the two are not the same kind
+of 3D — the CT is a dense voxel grid, the point cloud is sparse and unordered.
+Left: Mikael Häggström (CC0). Right: Daniel L. Lu, San Francisco (CC BY 4.0).
+:::
+
+## Text — a sequence of tokens
+
+:::::: columns
+::: column
+**Healthcare** — a radiology report
+
+![](img/text_medical.jpg)
+:::
+::: column
+**Elsewhere** — a newspaper page
+
+![](img/text_other.jpg)
+:::
+::::::
+
+::: notes
+Clinical text is its own dialect: abbreviations, negation ("no evidence of
+hydrocephalus"), copy-paste, and dictation errors. A model trained on newspapers
+reads "PT" as a person and not as prothrombin time. Weeks 11–12.
+Left: Tu et al., MultiMedBench (CC BY 4.0). Right: The Echo, 1920 (public domain).
+:::
+
 ## Multi-modality is the real world
 
 A single patient generates *all* of these simultaneously.
