@@ -168,7 +168,7 @@ Models learn whatever correlates with y in *the* data.
 - Pneumonia detectors that learned the **portable X-ray marker** (sicker patients get
   bedside imaging)
 - Skin lesion classifiers that learned the **surgical ruler** placed next to malignant lesions
-- Portrait to age models looking at **ears**
+- Portrait to age models looking at **ears size**
 
 ::: notes
 Zech et al. 2018 (cross-site CNN generalisation); Esteva/ISIC ruler artefact.
@@ -186,87 +186,18 @@ Typically:
   (e.g. `discharge_location == 'DIED'`)
 - Bug in the train/test split
 
-## Sanity checklist for any new dataset
-
-- What is one row?
-- Where does the label come from, and *when* is it known?
-- What is missing, and why?
-- What is the base rate?
-- How do I split so that leakage is impossible?
-- What would a trivial baseline score?
-
-*You will apply this checklist in today's recitation.*
-
 # 2. Data types and example
 
-## The landscape
-
-| Type | Example source | Modality |
-|---|---|---|
-| **EHR** | MIMIC-IV, eICU | tabular + time series + text |
-| **Claims** | CMS Medicare, SEER | tabular, coded, longitudinal |
-| **Imaging** | NIH Chest X-ray, BraTS | 2D / 3D arrays |
-| **Waveforms** | PhysioNet ECG, EEG | high-frequency signals |
-| **Genomics** | TCGA, UK Biobank | very wide, very few rows |
-| **Registries / surveys** | NHANES, CDC | curated, population-level |
-
-## EHR: electronic health records
-
-Demographics, admissions, transfers
-
-- Labs, vitals (irregularly sampled time series)
-- Medications, orders, procedures
-- Free-text notes
-- ICU monitoring at minute resolution
-
-**Strength:** rich and longitudinal.
-
-**Weakness:** biased by care processes.
-
-## Claims data
-
-Generated for **billing**.
-
-- Complete coverage across providers (you see the whole patient journey)
-- Coded: ICD, CPT, HCPCS, NDC
-- No clinical values — no labs, no vitals, no notes
-- **Upcoding**: codes are chosen to maximise reimbursement, not to describe reality
-- Lag of months
-
-Good for: cohort size, health economics, causal studies. Bad for: physiology.
-
-## Medical imaging
-
-- **2D:** X-ray, fundus photography, dermoscopy, histopathology slides (gigapixel!)
-- **3D:** CT, MRI — volumes, not pictures
-- Stored as **DICOM** (pixels + a huge metadata header)
-- Labels are scarce and expensive; segmentation masks even more so
-- Weeks 7–10
-
-## Waveforms and signals
-
-- ECG (250–500 Hz), EEG, arterial blood pressure, PPG
-- Enormous volume, tiny labelled fraction
-- Artefact-dominated: movement, disconnection, electrical noise
-- Weeks 5–6
-
-## Genomics & omics
-
-- p ≫ n: 20 000 genes, 300 patients
-- Batch effects dominate biological signal if you are careless
-- Multiple testing everywhere
-- Week 12 (survival on TCGA)
-
-## Tabular — one row per unit, `n × p`
+## Tabular: one row per unit `n × p`
 
 :::::: columns
 ::: column
-**Healthcare** — ward interventions
+**Ward interventions**
 
 ![](img/tabular_medical.jpg)
 :::
 ::: column
-**Elsewhere** — a ship's passenger manifest
+**A ship's passenger manifest**
 
 ![](img/tabular_other.jpg)
 :::
@@ -279,16 +210,16 @@ Left: Cortejoso et al., Clin Interv Aging (CC BY 3.0).
 Right: US Bureau of Immigration, 1912 (CC0) — the Titanic dataset you have all seen.
 :::
 
-## 1D signals — a value over time, `n × T`
+## 1D signals: a value over time `n × T`
 
 :::::: columns
 ::: column
-**Healthcare** — a 12-lead ECG
+**A 12-lead ECG**
 
 ![](img/signal_medical.jpg)
 :::
 ::: column
-**Elsewhere** — an audio waveform
+**An audio waveform**
 
 ![](img/signal_other.jpg)
 :::
@@ -301,16 +232,16 @@ of magnitude apart, identical methods.
 Left: Glenlarson (public domain). Right: Em3rgent0rdr (CC BY-SA 4.0).
 :::
 
-## 2D images — a grid of pixels, `H × W × C`
+## 2D images: a grid of pixels `H × W × C`
 
 :::::: columns
 ::: column
-**Healthcare** — a chest radiograph
+**A chest radiograph**
 
 ![](img/image2d_medical.jpg)
 :::
 ::: column
-**Elsewhere** — a satellite view of farmland
+**A satellite view of farmland**
 
 ![](img/image2d_other.jpg)
 :::
@@ -323,16 +254,18 @@ ground truth you can go and check.
 Left: Mikael Häggström (CC0). Right: NASA/ASTER, Kansas (public domain).
 :::
 
-## 3D volumes — a stack of slices, `D × H × W`
+## 3D volumes: a stack of slices, `D × H × W`
 
 :::::: columns
 ::: column
-**Healthcare** — a head CT, three planes
+**A CT**
 
 ![](img/volume3d_medical.jpg)
+
+*(three planes view)*
 :::
 ::: column
-**Elsewhere** — a LiDAR point cloud
+**A LiDAR point cloud**
 
 ![](img/volume3d_other.jpg)
 :::
@@ -345,16 +278,16 @@ of 3D — the CT is a dense voxel grid, the point cloud is sparse and unordered.
 Left: Mikael Häggström (CC0). Right: Daniel L. Lu, San Francisco (CC BY 4.0).
 :::
 
-## Text — a sequence of tokens
+## Text: a sequence of tokens
 
 :::::: columns
 ::: column
-**Healthcare** — a radiology report
+**A radiology report**
 
 ![](img/text_medical.jpg)
 :::
 ::: column
-**Elsewhere** — a newspaper page
+**A newspaper page**
 
 ![](img/text_other.jpg)
 :::
@@ -367,26 +300,9 @@ reads "PT" as a person and not as prothrombin time. Weeks 11–12.
 Left: Tu et al., MultiMedBench (CC BY 4.0). Right: The Echo, 1920 (public domain).
 :::
 
-## Multi-modality is the real world
-
-A single patient generates *all* of these simultaneously.
-
-- MIMIC-IV (tabular + notes) ↔ MIMIC-CXR (images) — linked by `subject_id`
-- Fusion strategies: early / late / joint embedding
-- Week 8: CLIP-style image–text pairing in radiology
-
 # 4. Wrapping up
 
-## Key takeaways
-
-- Real data violates every assumption of the textbook setup
-- **Noise, missingness, imbalance, shift** — name them explicitly for every project
-- In healthcare you observe **care processes**, not biology
-- Missingness carries information — and leakage
-- Standards (FHIR, OMOP) and vocabularies (ICD, LOINC, SNOMED) are what make data joinable
-- Always ask: what does one row mean, and when is the label known?
-
-## Recitation today (1.5h)
+## Recitation today
 
 **MIMIC-IV structure and data exploration**
 
@@ -398,14 +314,5 @@ A single patient generates *all* of these simultaneously.
 
 ## For next week
 
-- **Read:** Johnson et al., *MIMIC-IV, a freely accessible electronic health record dataset*
-  (Scientific Data, 2023)
-- **Skim:** Rubin (1976) on missing data mechanisms — we build on it directly
-- **Do:** finish the recitation notebook, including the open questions at the end
-- **Next lecture:** advanced feature engineering, and missingness done properly
-
-## Questions?
-
-Office hours: by appointment
-
-`Course01/` on the course repository
+- **TO DO:** finish the recitation notebook, including the open questions at the end
+- **Next lecture:** advanced feature engineering, and missing-ness done properly
