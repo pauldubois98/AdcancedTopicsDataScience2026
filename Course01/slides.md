@@ -117,12 +117,44 @@ Symmetric noise hurts *variance*; asymmetric noise creates a *bias*.
 Ask: if two experts only agree 70% of the time, what does 95% accuracy mean?
 :::
 
+## Noise
+
+![](img/noise.png)
+
+::: notes
+Left: the labels you wish you had. Right: the same 600 points, but the annotator is
+cautious and calls 35% of the negatives positive. The grey line is the truth, the
+amber line is what least squares gives you. Ask the room: which way did it move,
+and why is that worse than random flipping?
+:::
+
 ## Errors in features
 
 - Sensor artefacts: a heart rate of 300 bpm is a detached lead, not tachycardia
 - Unit chaos: weight in kg *and* lb in the same column; glucose in mg/dL *and* mmol/L
 - Copy-forward: the same "current" value duplicated across days of notes
 - Timestamps: charted at the time of *entry*, not the time of *measurement*
+
+## Errors in features: three lines that find them
+
+```python
+>>> vitals.heart_rate.agg(["min", "max"])
+min      0.0
+max    300.0    # a detached lead
+
+>>> vitals.weight.plot.hist(bins=60)
+                # two humps: kg and lb
+
+>>> labs.groupby("unit").glucose.median()
+mg/dL    126.0
+mmol/L     7.0  # same test, same patient
+```
+
+::: notes
+Run these three before anything else. `min`/`max` catch impossible values, a histogram
+catches mixed units far faster than reading a data dictionary, and grouping by unit
+catches the column that was silently concatenated from two sites.
+:::
 
 ## Missingness
 
@@ -141,6 +173,17 @@ Ask: if two experts only agree 70% of the time, what does 95% accuracy mean?
 We return to this in depth in Week 2 — imputation strategies and multiple imputation.
 :::
 
+## Missingness
+
+![](img/missingness.png)
+
+::: notes
+Left, patients sorted by how unwell they are: routine observations are almost always
+there, the specialised ones only for the sick. Right: the patients who had a lactate
+drawn died five times more often — and that is before anyone looked at the number.
+Impute it away and you delete the strongest signal in the table.
+:::
+
 ## Class imbalance
 
 - Rare disease screening: 1 in 10 000
@@ -153,6 +196,16 @@ We return to this in depth in Week 2 — imputation strategies and multiple impu
 
     => Can lead to distribution shift
 
+## Class imbalance
+
+![](img/imbalance.png)
+
+::: notes
+This model has no parameters — it is `return 0`. It beats most first attempts on
+accuracy and it would kill everyone it was meant to save. Every metric we use from
+Week 3 onwards exists to make this model score zero.
+:::
+
 ## Distribution shift
 
 Your model is trained on one slice of the world, then deployed in another:
@@ -160,6 +213,16 @@ Your model is trained on one slice of the world, then deployed in another:
 - **Covariate shift:** P(X) changes: new hospital, new scanner, new population
 - **Label shift:** P(Y) changes: a new variant, a new season
 - **Concept drift:** P(Y | X) changes: treatment guidelines are updated
+
+## Distribution shift
+
+![](img/shift.png)
+
+::: notes
+Nothing was retrained, no code changed. The deployment hospital simply admits older
+patients, and the case mix kept drifting. Without a monitoring dashboard you find out
+from a complaint, not from a metric. Week 14.
+:::
 
 ## Shortcuts
 
@@ -175,6 +238,17 @@ Zech et al. 2018 (cross-site CNN generalisation); Esteva/ISIC ruler artefact.
 These come back in Week 7.
 :::
 
+## Shortcuts: what the model actually learned
+
+![](img/shortcut.png)
+
+::: notes
+Every "pneumonia" scan in this hospital was shot at the bedside, so the portable
+unit's marker is in the corner of every positive. The model finds it in one epoch,
+scores perfectly, and collapses the moment you deploy it anywhere else.
+The marker here is drawn on — the phenomenon is Zech et al. 2018.
+:::
+
 ## Leakage
 
 Information at training time that will not exist at prediction time.
@@ -185,6 +259,28 @@ Typically:
 - Feature that is a deterministic function of the outcome
   (e.g. `discharge_location == 'DIED'`)
 - Bug in the train/test split
+
+## Leakage: the split that lies to you
+
+```python
+# WRONG - scaler already saw the test set
+X = StandardScaler().fit_transform(X)
+X_tr, X_te = train_test_split(X, test_size=.2)
+
+# WRONG - one patient, rows in both halves
+train_test_split(df, test_size=.2)
+
+# RIGHT - split by patient, fit on train
+tr, te = next(GroupShuffleSplit(test_size=.2)
+    .split(df, groups=df.subject_id))
+scaler = StandardScaler().fit(X[tr])
+```
+
+::: notes
+The first bug leaks the test distribution through the mean and variance. The second
+leaks the patient. Both look like excellent results, which is exactly why they survive
+code review. You will write the third version in today's recitation.
+:::
 
 # 2. Data types and example
 
