@@ -17,3 +17,11 @@ Each is downscaled to at most 1100 px and re-encoded as JPEG; no other modificat
 | `text_other.jpg` | [The Echo and South Leinster Advertiser, 14 Aug 1920](https://commons.wikimedia.org/wiki/File:Enniscorthy_Echo_-_The_Echo_and_South_Leinster_Advertiser_-_Front_Page_-_Sat_14_Aug_1920.png) | Unknown | Public domain |
 
 Attribution is also carried in the speaker notes of each slide in `../slides.md`.
+
+## Generated figures
+
+`noise.png`, `missingness.png`, `imbalance.png`, `shift.png` and `shortcut.png` are not downloaded.
+They are rendered by `scripts/make_figures.py` (`make figures`) from seeded synthetic data, so they rebuild identically anywhere.
+Do not edit them by hand; edit the script.
+`shortcut.png` is composite: it draws a fake "PORTABLE" marker onto `image2d_medical.jpg` above to show how a spurious cue is learned.
+It is a constructed illustration; the underlying phenomenon is Zech et al. 2018.
