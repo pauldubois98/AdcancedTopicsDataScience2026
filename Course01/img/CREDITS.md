@@ -18,6 +18,12 @@ Each is downscaled to at most 1100 px and re-encoded as JPEG; no other modificat
 
 Attribution is also carried in the speaker notes of each slide in `../slides.md`.
 
+## Unattributed
+
+`break.png` (the "Break time" slide) was added to the deck directly and extracted back out
+of the `.pptx`, so its provenance is not recorded here. **Fill this in before the repo is
+shared or published** — if it is AI-generated, say so; if it came from somewhere, credit it.
+
 ## Generated figures
 
 `noise.png`, `missingness.png`, `imbalance.png`, `shift.png` and `shortcut.png` are not downloaded.
