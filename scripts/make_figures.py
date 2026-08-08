@@ -63,8 +63,41 @@ def draw_boundary(ax, w, b, color, label):
     ax.plot(xs, -(w[0] * xs + b) / w[1], color=color, lw=2.5, label=label, zorder=3)
 
 
+def ask(ax, question: str) -> None:
+    """Replace a panel with the question it answers, for the predict-then-reveal stage.
+
+    The panel keeps its footprint so the question and reveal images have the same
+    aspect ratio and do not jump in size when you advance the slide.
+    """
+    ax.clear()
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.add_patch(
+        Rectangle(
+            (0.04, 0.06),
+            0.92,
+            0.88,
+            transform=ax.transAxes,
+            facecolor="none",
+            edgecolor=GREY,
+            ls=(0, (6, 6)),
+            lw=1.4,
+        )
+    )
+    ax.text(0.5, 0.60, "?", transform=ax.transAxes, ha="center", va="center",
+            fontsize=52, color=GREY, fontweight="bold")
+    ax.text(0.5, 0.28, question, transform=ax.transAxes, ha="center", va="center",
+            fontsize=12.5, color=INK)
+
+
+def stage_name(base: str, reveal: bool) -> str:
+    return f"{base}.png" if reveal else f"{base}_q.png"
+
+
 # --------------------------------------------------------------------------- noise
-def fig_noise(out: Path) -> None:
+def fig_noise(out: Path, reveal: bool = True) -> None:
     rng = np.random.default_rng(0)
     n = 300
     x = np.vstack([rng.normal([-1.2, -0.4], 1.0, (n, 2)), rng.normal([1.2, 0.6], 1.0, (n, 2))])
@@ -93,16 +126,21 @@ def fig_noise(out: Path) -> None:
     w_obs, b_obs = lda_boundary(x, y_obs)
     draw_boundary(axes[0], w_true, b_true, INK, "boundary")
     draw_boundary(axes[1], w_true, b_true, GREY, "true boundary")
-    draw_boundary(axes[1], w_obs, b_obs, AMBER, "what you learn")
+    if reveal:
+        draw_boundary(axes[1], w_obs, b_obs, AMBER, "what you learn")
+    else:
+        axes[1].set_title(
+            "What the annotator wrote\nwhere does the fitted line go?", fontsize=12
+        )
 
     for ax in axes:
         ax.legend(loc="lower right", fontsize=9, frameon=False)
-    fig.savefig(out / "noise.png")
+    fig.savefig(out / stage_name("noise", reveal))
     plt.close(fig)
 
 
 # --------------------------------------------------------------------- missingness
-def fig_missingness(out: Path) -> None:
+def fig_missingness(out: Path, reveal: bool = True) -> None:
     rng = np.random.default_rng(1)
     n = 600
     severity = np.sort(rng.beta(1.6, 3.2, n))[::-1]
@@ -149,6 +187,12 @@ def fig_missingness(out: Path) -> None:
     rates = [died[~lactate].mean(), died[lactate].mean()]
 
     ax = axes[1]
+    if not reveal:
+        ask(ax, "Who died more often:\nthe patients whose lactate\nwas drawn, or not drawn?")
+        fig.savefig(out / stage_name("missingness", reveal))
+        plt.close(fig)
+        return
+
     bars = ax.bar(
         ["lactate\nnever drawn", "lactate\ndrawn"],
         [r * 100 for r in rates],
@@ -166,12 +210,12 @@ def fig_missingness(out: Path) -> None:
         )
     ax.set_ylabel("died in hospital (%)")
     ax.set_ylim(0, max(rates) * 100 * 1.28)
-    fig.savefig(out / "missingness.png")
+    fig.savefig(out / stage_name("missingness", reveal))
     plt.close(fig)
 
 
 # ------------------------------------------------------------------------ imbalance
-def fig_imbalance(out: Path) -> None:
+def fig_imbalance(out: Path, reveal: bool = True) -> None:
     n_neg, n_pos = 9945, 55
 
     fig, axes = plt.subplots(1, 2, figsize=(11.8, 3.5), gridspec_kw={"width_ratios": [1.15, 1]})
@@ -185,6 +229,13 @@ def fig_imbalance(out: Path) -> None:
     ax.tick_params(axis="y", length=0)
 
     ax = axes[1]
+    if not reveal:
+        ask(ax, "This model is 99.45% accurate.\nHands up if you would ship it.")
+        fig.suptitle("accuracy 99.45%", fontsize=13.5, fontweight="bold", color=RED, y=1.09)
+        fig.savefig(out / stage_name("imbalance", reveal))
+        plt.close(fig)
+        return
+
     cm = np.array([[n_neg, 0], [n_pos, 0]])
     ax.imshow(cm, cmap="Blues", vmin=0, vmax=n_neg)
     for i in range(2):
@@ -212,12 +263,12 @@ def fig_imbalance(out: Path) -> None:
         color=RED,
         y=1.09,
     )
-    fig.savefig(out / "imbalance.png")
+    fig.savefig(out / stage_name("imbalance", reveal))
     plt.close(fig)
 
 
 # ----------------------------------------------------------------------------- shift
-def fig_shift(out: Path) -> None:
+def fig_shift(out: Path, reveal: bool = True) -> None:
     rng = np.random.default_rng(3)
     grid = np.linspace(20, 105, 400)
 
@@ -241,6 +292,16 @@ def fig_shift(out: Path) -> None:
     ax.spines["left"].set_visible(False)
 
     ax = axes[1]
+    if not reveal:
+        ask(ax, "It scored AUC 0.83 at validation.\nWhat does it score a year later?")
+        fig.suptitle(
+            "The model does not change; The world can.",
+            fontsize=12.5, y=1.02, fontweight="bold",
+        )
+        fig.savefig(out / stage_name("shift", reveal))
+        plt.close(fig)
+        return
+
     months = np.arange(0, 13)
     auc = 0.83 - 0.013 * months - 0.055 * (months > 6) * (months - 6) / 6
     auc += rng.normal(0, 0.006, months.size)
@@ -254,12 +315,12 @@ def fig_shift(out: Path) -> None:
     fig.suptitle(
         "The model does not change; The world can.", fontsize=12.5, y=1.02, fontweight="bold"
     )
-    fig.savefig(out / "shift.png")
+    fig.savefig(out / stage_name("shift", reveal))
     plt.close(fig)
 
 
 # -------------------------------------------------------------------------- shortcut
-def fig_shortcut(out: Path) -> None:
+def fig_shortcut(out: Path, reveal: bool = True) -> None:
     from PIL import Image
 
     xray = np.asarray(Image.open(out / "image2d_medical.jpg").convert("L"), dtype=float) / 255
@@ -293,6 +354,15 @@ def fig_shortcut(out: Path) -> None:
 
     show(axes[1], 'labelled "normal"', BLUE)
 
+    if not reveal:
+        ask(axes[2], "It gets every one right.\nWhat did it learn?")
+        fig.suptitle(
+            "100% accuracy on the test set", fontsize=13.5, y=1.04, fontweight="bold"
+        )
+        fig.savefig(out / stage_name("shortcut", reveal))
+        plt.close(fig)
+        return
+
     show(axes[2], "where the model looks", INK)
     marker(axes[2])
     yy, xx = np.mgrid[0:h, 0:w]
@@ -313,7 +383,7 @@ def fig_shortcut(out: Path) -> None:
         fontsize=9,
         color=GREY,
     )
-    fig.savefig(out / "shortcut.png")
+    fig.savefig(out / stage_name("shortcut", reveal))
     plt.close(fig)
 
 
@@ -321,9 +391,11 @@ def main() -> None:
     out = Path(sys.argv[1] if len(sys.argv) > 1 else "Course01/img")
     out.mkdir(parents=True, exist_ok=True)
     for fn in (fig_noise, fig_missingness, fig_imbalance, fig_shift, fig_shortcut):
-        fn(out)
         name = fn.__name__.removeprefix("fig_")
-        print(f"{out / (name + '.png')}")
+        # each figure ships in two stages: ask the room, then reveal the answer
+        for reveal in (False, True):
+            fn(out, reveal)
+            print(f"{out / stage_name(name, reveal)}")
 
 
 if __name__ == "__main__":
