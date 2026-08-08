@@ -119,6 +119,17 @@ Ask: if two experts only agree 70% of the time, what does 95% accuracy mean?
 
 ## Noise
 
+![](img/noise_q.png)
+
+::: notes
+Hands up before you click on. The annotator over-calls: 35% of the true negatives
+came back as findings. Ask for a show of hands - does the fitted line move left,
+move right, or stay put? Take a vote, then reveal. Most rooms say "stay put"
+because they are thinking of symmetric noise averaging out.
+:::
+
+## Noise
+
 ![](img/noise.png)
 
 ::: notes
@@ -135,7 +146,7 @@ and why is that worse than random flipping?
 - Copy-forward: the same "current" value duplicated across days of notes
 - Timestamps: charted at the time of *entry*, not the time of *measurement*
 
-## Errors in features: three lines that find them
+## Errors in features
 
 ```python
 >>> vitals.heart_rate.agg(["min", "max"])
@@ -175,6 +186,17 @@ We return to this in depth in Week 2 — imputation strategies and multiple impu
 
 ## Missingness
 
+![](img/missingness_q.png)
+
+::: notes
+Show the matrix, let them read it for fifteen seconds, then take the vote: who died
+more often, the patients whose lactate was drawn or the ones where it never was?
+Hands for each. The room usually splits, which is the point - nobody has looked at
+a single lactate value yet.
+:::
+
+## Missingness
+
 ![](img/missingness.png)
 
 ::: notes
@@ -184,17 +206,51 @@ drawn died five times more often — and that is before anyone looked at the num
 Impute it away and you delete the strongest signal in the table.
 :::
 
+## Guess the base rate
+
+Write your guess down first. No phones, no neighbours.
+
+- In-hospital mortality, ICU admissions: **\_\_\_ %**
+- 30-day readmission after discharge: **\_\_\_ %**
+- A rare disease at population screening: **1 in \_\_\_**
+
+::: notes
+Make them commit to a number before you say anything - written down, not shouted
+out, otherwise the first loud answer anchors the room.
+Rooms routinely guess far too low for ICU mortality and far too high for the
+rare disease. Ask why the guess is high: because the cases you hear about are the
+ones that went wrong, which is the same selection effect that shapes the data.
+:::
+
+## Guess the base rate
+
+Write your guess down first. No phones, no neighbours.
+
+- In-hospital mortality, ICU admissions: **~20 %**
+- 30-day readmission after discharge: **~15 %**
+- A rare disease at population screening: **1 in 10 000**
+
 ## Class imbalance
 
-- Rare disease screening: 1 in 10 000
+- Rare disease screening is 1 in 10 000
 
-    A model that predicts "no" always is 99.99% accurate
+=> A model that predicts "no" always is 99.99% accurate
 
 - Blood types are not equally spread on the population
 
-    The imbalance is changing according to the world regions
+The imbalance is changing according to the world regions
 
-    => Can lead to distribution shift
+=> Can lead to distribution shift
+
+## Class imbalance
+
+![](img/imbalance_q.png)
+
+::: notes
+"Hands up if you would ship it." Wait for the hands, then ask one person who put
+their hand up to say why, and one who did not. Then reveal. Do not rush this one -
+the discomfort is the lesson.
+:::
 
 ## Class imbalance
 
@@ -240,6 +296,16 @@ These come back in Week 7.
 
 ## Shortcuts: what the model actually learned
 
+![](img/shortcut_q.png)
+
+::: notes
+Two training images and a perfect score. Give them thirty seconds in pairs, then
+take two or three guesses out loud before revealing the third panel. Someone
+usually spots the marker; if nobody does, that is the more interesting outcome.
+:::
+
+## Shortcuts: what the model actually learned
+
 ![](img/shortcut.png)
 
 ::: notes
@@ -260,26 +326,177 @@ Typically:
   (e.g. `discharge_location == 'DIED'`)
 - Bug in the train/test split
 
-## Leakage: the split that lies to you
+## Spot the leakage
 
 ```python
-# WRONG - scaler already saw the test set
+# A
 X = StandardScaler().fit_transform(X)
-X_tr, X_te = train_test_split(X, test_size=.2)
+tr, te = train_test_split(X)
 
-# WRONG - one patient, rows in both halves
-train_test_split(df, test_size=.2)
+# B
+df["los"] = df.discharge - df.admit
+model.fit(df[["los", "age"]], df.died)
 
-# RIGHT - split by patient, fit on train
-tr, te = next(GroupShuffleSplit(test_size=.2)
-    .split(df, groups=df.subject_id))
-scaler = StandardScaler().fit(X[tr])
+# C
+ids = df.subject_id.unique()
+tr, te = train_test_split(ids)
+
+# D
+df = df.sort_values("charttime")
+tr, te = df[:8000], df[8000:]
 ```
 
+Which of these leak?
+
 ::: notes
-The first bug leaks the test distribution through the mean and variance. The second
-leaks the patient. Both look like excellent results, which is exactly why they survive
-code review. You will write the third version in today's recitation.
+Vote by fingers on each one before discussing. A leaks: the scaler saw the test set.
+B leaks: length of stay is only known at discharge, and death shortens it. C is the
+right idea - split on patients, not rows. D is the one worth arguing about: a
+time-ordered split is good practice against shift, but the same patient can still
+straddle the cut, so it leaks by group unless you also split by patient.
+Answer: A, B and D leak. Only C is safe.
+:::
+
+## A — leaks: the scaler saw everything
+
+```python
+# WRONG
+X = StandardScaler().fit_transform(X)
+tr, te = train_test_split(X)
+
+# RIGHT
+tr, te = train_test_split(X)
+scaler = StandardScaler().fit(X[tr])
+X_tr = scaler.transform(X[tr])
+X_te = scaler.transform(X[te])
+```
+
+The mean and variance were computed over the test rows too.
+
+::: notes
+The optimism is small but real, and it grows fast as p grows or n shrinks. The same
+bug hides inside feature selection, PCA, and target encoding - anything fitted before
+the split. The durable fix is a `Pipeline`, so the preprocessing is refitted inside
+every CV fold rather than remembered from the whole dataset.
+:::
+
+## B — leaks: the feature knows the answer
+
+```python
+# WRONG
+df["los"] = df.discharge - df.admit
+model.fit(df[["los", "age"]], df.died)
+
+# RIGHT - freeze features at a cut time
+cut = df.admit + pd.Timedelta(hours=24)
+feats = events[events.time <= cut]
+model.fit(summarise(feats), df.died)
+```
+
+Length of stay is only known once the stay is over — and dying ends it.
+
+::: notes
+This is target leakage, and it is the one that produces AUCs of 0.99. Ask the room
+what a deployed model would actually have at prediction time: a patient who is still
+in a bed has no discharge date. The general rule is to pick a decision time and
+refuse every value recorded after it.
+:::
+
+## C — safe: the split is on patients
+
+```python
+ids = df.subject_id.unique()
+tr, te = train_test_split(ids)
+```
+
+One patient's rows now land entirely on one side.
+
+::: notes
+This is the right idea. The version worth writing is `GroupShuffleSplit`, which does
+the same thing without you handling ids by hand, and which composes with
+cross-validation. Note it is necessary but not sufficient - C is still vulnerable to
+the time problem in D if the model will be deployed forwards in time.
+:::
+
+## D — leaks: same patient, both sides
+
+```python
+# WRONG - a stay can straddle the cut
+df = df.sort_values("charttime")
+tr, te = df[:8000], df[8000:]
+
+# RIGHT - split by time AND by patient
+cut = df.charttime.quantile(0.8)
+ids = df[df.charttime <= cut].subject_id
+te = df[~df.subject_id.isin(ids)]
+```
+
+A time split is the right instinct; on its own it still leaks by group.
+
+::: notes
+This is the one worth arguing about, and the honest answer is "both". Splitting by
+time is what you want if the model will run forwards - it is the only split that
+measures shift. But a stay spanning the cut puts the same patient in both halves.
+You need both constraints, and the two fight each other: patients admitted before
+the cut and discharged after it have to be thrown away.
+:::
+
+## Autopsy
+
+Name the failure mode for each:
+
+1. **Google Flu Trends:** tracked flu well for years, then overshot the 2013 peak
+   by roughly double, and was retired
+2. **Epic's sepsis model:** sold on an AUC of 0.76–0.83, scored 0.63 in an
+   independent evaluation of ~28 000 admissions
+3. **COVID chest X-ray models:** hundreds published in 2020, an independent review
+   found none fit for clinical use
+
+::: notes
+Give them three minutes in pairs, collect answers on the board under the four
+headings, then reveal the next slide.
+Answers, and none is a single cause:
+1. Concept drift, plus a feedback loop - Google's own autocomplete changed what
+   people searched for, so the features moved under the model.
+2. Shift and label noise: sepsis is defined by a billing code that varies by site,
+   and the model was tuned somewhere else. Wong et al., JAMA Intern Med 2021.
+3. Shortcuts, mostly - models learned the source hospital, scanner and laterality
+   tokens rather than the disease. Roberts et al., Nat Mach Intell 2021;
+   DeGrave et al. 2021.
+Collect answers on the board under the four headings before moving on.
+:::
+
+## Autopsy
+
+Name the failure mode for each:
+
+1. Google Flu Trends: **Concept drift**, plus a *feedback loop*
+2. Epic's sepsis model: **Shift** + *label noise* in the outcome
+3. COVID chest X-ray models: **Shortcuts**, and **leakage** across sources
+
+::: notes
+Insist that none of the three has a single cause - that is why the four headings
+are a checklist and not a taxonomy.
+Flu Trends: the search terms drifted, partly because Google's own autocomplete
+changed what people typed, so the features moved under a model nobody retrained.
+Epic: sepsis is defined by a billing code applied differently at every site, so
+both P(X) and the meaning of Y moved. Wong et al., JAMA Intern Med 2021.
+COVID: models learned the source hospital, the scanner and laterality tokens.
+Many also pooled adult pneumonia with paediatric controls, so the classifier had
+only to detect a child. Roberts et al., Nat Mach Intell 2021; DeGrave et al. 2021.
+:::
+
+## Break time
+
+![](img/break.png)
+
+::: notes
+Write the resume time on the board before you walk off. "Ten minutes" announced
+from the front of a lecture theatre reliably becomes fifteen, and this is the
+half-way point of a 2.5h session - section 2 still has to fit.
+This is also the moment the students who will not put a hand up in front of the
+room will come and ask you something, so stay near the front for the first few
+minutes.
 :::
 
 # 2. Data types and example
@@ -412,3 +629,18 @@ Left: Tu et al., MultiMedBench (CC BY 4.0). Right: The Echo, 1920 (public domain
 
 - **TO DO:** finish the recitation notebook, including the open questions at the end
 - **Next lecture:** advanced feature engineering, and missing-ness done properly
+
+## Before you go
+
+On a slip of paper, one line each:
+
+- One thing you will check before you trust a dataset
+- One thing today that did not make sense
+
+Leave it on the desk on your way out.
+
+::: notes
+Two minutes, and do not skip it when you run late - this is the only feedback you
+get before next week. Read them on the way back and open the next lecture with the
+two most common answers to the second question.
+:::
