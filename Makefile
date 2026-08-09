@@ -5,6 +5,10 @@ SLIDE_TARGETS := $(SLIDE_SOURCES:.md=.pptx)
 FIGURE_STEMS := noise missingness imbalance shift shortcut
 # each figure ships in two stages: <name>_q.png asks the room, <name>.png reveals
 FIGURES := $(foreach f,$(FIGURE_STEMS),Course01/img/$(f)_q.png Course01/img/$(f).png)
+# the non-medical twin of each concept, single-stage
+ALT_STEMS := noise errors imbalance shift shortcut
+FIGURES += $(foreach f,$(ALT_STEMS),Course01/img/$(f)_alt.png)
+FIGURES += Course01/img/errors_alt_bis.png
 
 .PHONY: slides figures clean-slides clean-figures
 slides: $(SLIDE_TARGETS)

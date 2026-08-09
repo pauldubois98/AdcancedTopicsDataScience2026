@@ -591,18 +591,71 @@ def fig_errors_alt(out: Path) -> None:
     fig.savefig(out / "errors_alt.png")
     plt.close(fig)
 
-    # fig, axes = plt.subplots(1, 2, figsize=(9, 4.0))
-    # ax = axes[2]
-    # true_kmh = rng.normal(38, 6, 4000)
-    # in_mph = rng.random(4000) < 0.35  # one supplier's units were never converted
-    # ax.hist(np.where(in_mph, true_kmh / 1.609, true_kmh), bins=60, color=GREY)
-    # ax.set_title("one `speed` column, two units", fontsize=12)
-    # ax.set_xlabel("speed as recorded")
-    # ax.set_yticks([])
-    # ax.spines["left"].set_visible(False)
 
-    # fig.savefig(out / "errors_alt_bis.png")
-    # plt.close(fig)
+def fig_errors_alt_bis(out: Path) -> None:
+    """Mixed units, seen one supplier at a time and then merged.
+
+    The point of the three panels is that neither supplier looks wrong on its own.
+    Every sanity check you would run per-source passes; the bug only exists in the
+    concatenation, which is where nobody looks.
+    """
+    rng = np.random.default_rng(15)
+    # both fleets drive the same roads at the same speeds, ~38 km/h
+    speed_a = rng.normal(38, 6, 2600)
+    speed_b = rng.normal(38, 6, 1400)
+    recorded_b = speed_b / 1.609  # supplier B's firmware reports mph, nobody converted
+    bins = np.linspace(5, 65, 61)
+
+    fig, axes = plt.subplots(1, 3, figsize=(13.2, 4.0), sharex=True, sharey=True)
+
+    panels = (
+        (axes[0], recorded_b, AMBER, "supplier B alone", "1 400 vehicles, mean 24"),
+        (axes[1], speed_a, BLUE, "supplier A alone", "2 600 vehicles, mean 38"),
+    )
+    for ax, values, color, title, caption in panels:
+        ax.hist(values, bins=bins, color=color, alpha=0.85)
+        ax.set_title(title, fontsize=12.5, color=color, fontweight="bold")
+        ax.set_xlabel("speed as recorded")
+        ax.text(
+            0.5,
+            0.94,
+            caption,
+            transform=ax.transAxes,
+            ha="center",
+            fontsize=10,
+            color=GREY,
+        )
+        ax.set_yticks([])
+        ax.spines["left"].set_visible(False)
+
+    ax = axes[2]
+    # grey, because a merged column arrives with no colour telling you which is which
+    ax.hist(np.r_[recorded_b, speed_a], bins=bins, color=GREY)
+    ax.set_title("one `speed` column", fontsize=12.5, color=RED, fontweight="bold")
+    ax.set_xlabel("speed as recorded")
+    ax.text(
+        0.5,
+        0.94,
+        "two humps, one fleet",
+        transform=ax.transAxes,
+        ha="center",
+        fontsize=10,
+        color=RED,
+    )
+    ax.set_yticks([])
+    ax.spines["left"].set_visible(False)
+
+    # one call: the y axis is shared, so scaling each in turn compounds
+    axes[0].set_ylim(top=axes[0].get_ylim()[1] * 1.22)
+
+    fig.suptitle(
+        "Neither supplier looks wrong on its own",
+        fontsize=13.5,
+        y=1.03,
+        fontweight="bold",
+    )
+    fig.savefig(out / "errors_alt_bis.png")
+    plt.close(fig)
 
 
 # ------------------------------------------------------------- imbalance (alt)
@@ -778,6 +831,7 @@ STAGED = (fig_noise, fig_missingness, fig_imbalance, fig_shift, fig_shortcut)
 SINGLE = (
     fig_noise_alt,
     fig_errors_alt,
+    fig_errors_alt_bis,
     fig_imbalance_alt,
     fig_shift_alt,
     fig_shortcut_alt,

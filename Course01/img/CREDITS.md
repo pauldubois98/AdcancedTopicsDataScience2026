@@ -32,6 +32,6 @@ Do not edit them by hand; edit the script.
 `shortcut.png` is composite: it draws a fake "PORTABLE" marker onto `image2d_medical.jpg` above to show how a spurious cue is learned.
 It is a constructed illustration; the underlying phenomenon is Zech et al. 2018.
 
-The seven `*_alt.png` files are the non-medical twin of each section-1 concept, from the same script and equally synthetic.
-Two of them illustrate published results and the slide notes say so: `shortcut_alt.png` is a drawing of the husky-vs-wolf experiment in Ribeiro et al. 2016, and `leakage_alt.png` uses invented AUCs to show a pattern, not measurements.
+The `*_alt.png` files are the non-medical twin of a section-1 concept, from the same script and equally synthetic (`errors_alt_bis.png` is a second figure for the same concept, not a sixth concept).
+`shortcut_alt.png` is a drawing, not a photograph: it illustrates the husky-vs-wolf experiment in Ribeiro et al. 2016, and the slide says so.
 `imbalance_alt.png` is the only one carrying real numbers: 492 frauds in 284 807 transactions, the class balance of the ULB/Worldline credit-card dataset.
