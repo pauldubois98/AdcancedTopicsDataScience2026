@@ -31,3 +31,7 @@ They are rendered by `scripts/make_figures.py` (`make figures`) from seeded synt
 Do not edit them by hand; edit the script.
 `shortcut.png` is composite: it draws a fake "PORTABLE" marker onto `image2d_medical.jpg` above to show how a spurious cue is learned.
 It is a constructed illustration; the underlying phenomenon is Zech et al. 2018.
+
+The seven `*_alt.png` files are the non-medical twin of each section-1 concept, from the same script and equally synthetic.
+Two of them illustrate published results and the slide notes say so: `shortcut_alt.png` is a drawing of the husky-vs-wolf experiment in Ribeiro et al. 2016, and `leakage_alt.png` uses invented AUCs to show a pattern, not measurements.
+`imbalance_alt.png` is the only one carrying real numbers: 492 frauds in 284 807 transactions, the class balance of the ULB/Worldline credit-card dataset.
