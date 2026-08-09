@@ -139,6 +139,19 @@ amber line is what least squares gives you. Ask the room: which way did it move,
 and why is that worse than random flipping?
 :::
 
+## Noise
+
+![](img/noise_alt.png)
+
+::: notes
+Product-review sentiment, labelled twice by crowdworkers.
+Same mechanism, no radiologist in sight. Ask the room what accuracy they would put
+in a paper if worker B is the test set: the honest answer is that 83% is the
+ceiling, and a model reported at 90% is measuring the annotator, not the language.
+Show of hands before you reveal: does a bigger model fix this? It does not - the
+only fix is more annotators per item, or a better annotation guideline.
+:::
+
 ## Errors in features
 
 - Sensor artefacts: a heart rate of 300 bpm is a detached lead, not tachycardia
@@ -165,6 +178,36 @@ mmol/L     7.0  # same test, same patient
 Run these three before anything else. `min`/`max` catch impossible values, a histogram
 catches mixed units far faster than reading a data dictionary, and grouping by unit
 catches the column that was silently concatenated from two sites.
+:::
+
+## Errors in features
+
+![](img/errors_alt.png)
+
+::: notes
+A delivery fleet's telemetry, checked with the same three lines.
+Left: "no GPS fix" was written to the database as the number (0, 0) - a sentinel,
+not a null, and it is off the coast of Africa. Exactly the same bug as a heart rate
+of 0. Right: one supplier never converted mph to km/h, so a single column holds two
+units and the histogram has two humps.
+The expensive version of this is the Mars Climate Orbiter, lost in 1999 because one
+team worked in pound-force seconds and the other in newton-seconds.
+:::
+
+## Errors in features
+
+![](img/errors_alt_bis.png)
+
+::: notes
+The same fleet, split by supplier. Both are driving the same roads at the same
+speeds - but supplier B's firmware reports mph and nobody converted it, so the
+column holds 24 where it should hold 38.
+Walk the panels left to right and ask after each of the first two whether anything
+is wrong. Nothing is: each supplier's distribution is a clean bell curve with a
+plausible mean, and every per-source sanity check passes. The bug exists only in the
+concatenation, which is the one view nobody plots.
+The expensive version is the Mars Climate Orbiter, lost in 1999 because one team
+worked in pound-force seconds and the other in newton-seconds.
 :::
 
 ## Missingness
@@ -205,6 +248,7 @@ there, the specialised ones only for the sick. Right: the patients who had a lac
 drawn died five times more often — and that is before anyone looked at the number.
 Impute it away and you delete the strongest signal in the table.
 :::
+
 
 ## Guess the base rate
 
@@ -262,6 +306,19 @@ accuracy and it would kill everyone it was meant to save. Every metric we use fr
 Week 3 onwards exists to make this model score zero.
 :::
 
+## Class imbalance
+
+![](img/imbalance_alt.png)
+
+::: notes
+Card fraud: 492 in 284 807 transactions.
+Real figures, from the ULB/Worldline dataset that half of them will meet on Kaggle.
+`return 0` scores 99.83% and catches nothing. Ask what the bank actually cares
+about, and you get the answer that accuracy was never the objective: they care about
+euros recovered per false alarm, because every false alarm blocks a real customer's
+card in a supermarket queue.
+:::
+
 ## Distribution shift
 
 Your model is trained on one slice of the world, then deployed in another:
@@ -278,6 +335,20 @@ Your model is trained on one slice of the world, then deployed in another:
 Nothing was retrained, no code changed. The deployment hospital simply admits older
 patients, and the case mix kept drifting. Without a monitoring dashboard you find out
 from a complaint, not from a metric. Week 14.
+:::
+
+## Distribution shift
+
+![](img/shift_alt.png)
+
+::: notes
+Weekly demand forecasting, and a competitor opens in week 70.
+The hospital example on the previous slide was covariate shift - P(X) moved. This one
+is a concept change: the relationship between the calendar and demand is simply not
+the same after week 70, and no amount of retraining on pre-70 data helps.
+Forecast error goes from 2% to 60% in a single week, and nobody touched the code.
+Ask them how they would have found out. The honest answer, in most companies, is
+"someone in finance noticed the numbers were wrong".
 :::
 
 ## Shortcuts
@@ -313,6 +384,19 @@ Every "pneumonia" scan in this hospital was shot at the bedside, so the portable
 unit's marker is in the corner of every positive. The model finds it in one epoch,
 scores perfectly, and collapses the moment you deploy it anywhere else.
 The marker here is drawn on — the phenomenon is Zech et al. 2018.
+:::
+
+## Shortcuts
+
+![](img/shortcut_alt.png)
+
+::: notes
+Huskies and wolves — the classifier that learned snow.
+Ribeiro et al. 2016, the LIME paper. They trained a deliberately bad husky-vs-wolf
+classifier, and the explanation showed it was scoring the background: every wolf
+photo had snow in it. When they showed the predictions to graduate students, most
+trusted the model - until they saw where it was looking.
+The images here are drawn, not photographs; the experiment is real.
 :::
 
 ## Leakage
@@ -440,6 +524,7 @@ measures shift. But a stay spanning the cut puts the same patient in both halves
 You need both constraints, and the two fight each other: patients admitted before
 the cut and discharged after it have to be thrown away.
 :::
+
 
 ## Autopsy
 
