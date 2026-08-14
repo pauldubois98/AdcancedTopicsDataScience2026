@@ -1,5 +1,7 @@
 ---
-title: "Session 1 — Course Introduction & Healthcare Data"
+title: |
+  Session 1\
+  Course Introduction & Healthcare Data
 subtitle: "Advanced Data Science · NYU Paris · 2026"
 author: "Paul Dubois"
 date: "Week 1 — Lecture (2.5h)"
