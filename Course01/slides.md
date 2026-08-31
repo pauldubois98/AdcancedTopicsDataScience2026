@@ -700,7 +700,297 @@ reads "PT" as a person and not as prothrombin time. Weeks 11–12.
 Left: Tu et al., MultiMedBench (CC BY 4.0). Right: The Echo, 1920 (public domain).
 :::
 
-# 4. Wrapping up
+# 3. Where data science is used
+
+## The same five datatypes
+
+![](img/dsmap.png)
+
+::: notes
+The columns are section 2's five data types. The point is the density: no column
+belongs to one field, and no field lives in one column.
+Ask which cell surprises them. Usual answer is 3D volumes for sport - it is pose and
+player tracking reconstructed in three dimensions, and it is the same convolution.
+:::
+
+## Finance
+
+:::::: columns
+::: column
+**Fraud detection at a card network**
+
+- **In:** one transaction — amount, merchant, time, this card's history
+- **Out:** P(fraud), in under 100 ms
+- **Fails on:** imbalance — 0.2% positive, and an adversary who adapts
+:::
+::: column
+![](img/task_finance.png)
+:::
+::::::
+
+::: notes
+The card-fraud figure from section 1 was this. Worth adding the adversarial twist:
+unlike a disease, fraud pushes back. Retrain monthly or the pattern you learned is
+the one the fraudsters have already abandoned.
+The 100 ms is not decoration - it rules out most of what we will cover in week 3.
+:::
+
+## Retail
+
+:::::: columns
+::: column
+**Demand forecasting for a supermarket chain**
+
+- **In:** one product in one store — two years of weekly sales, price, promotions
+- **Out:** units sold, each of the next 14 weeks
+- **Fails on:** distribution shift — promotions, weather, a competitor
+:::
+::: column
+![](img/task_retail.png)
+:::
+::::::
+
+::: notes
+The demand-forecast figure in section 1 was this one. Millions of series, most of
+them mostly zero: intermittent demand is its own literature, and it is imbalance
+wearing a time series costume.
+:::
+
+## Manufacturing
+
+:::::: columns
+::: column
+**Visual inspection on a production line**
+
+- **In:** one part, photographed as it passes
+- **Out:** defect or not, and where on the part
+- **Fails on:** imbalance *and* label noise, together
+:::
+::: column
+![](img/task_manufacturing.png)
+:::
+::::::
+
+::: notes
+Two defects per thousand parts, and two inspectors agree maybe 80% of the time.
+This is the cleanest industrial example of the ceiling from the noise slides: you
+cannot score above your inspectors, and management will ask you to.
+:::
+
+## Climate and weather
+
+:::::: columns
+::: column
+**Medium-range global forecasting**
+
+- **In:** the atmosphere on a grid — pressure, temperature, wind, now and 6 h ago
+- **Out:** the same grid, up to 10 days ahead
+- **Fails on:** shift — the training distribution is itself moving
+:::
+::: column
+![](img/task_climate.png)
+:::
+::::::
+
+::: notes
+DeepMind's GraphCast (2023) beat the operational physics model on most verification
+scores, which is the result that got attention. The part that matters here is the
+caveat: it is trained on a reanalysis of the past, and the climate is not stationary,
+so what it learned is drifting under it by construction. Nobody has a clean answer.
+:::
+
+## Energy
+
+:::::: columns
+::: column
+**Grid load and renewable output**
+
+- **In:** the last 48 half-hours of demand, plus the weather forecast
+- **Out:** demand for every half-hour of tomorrow
+- **Fails on:** missingness — sensors drop out during storms
+:::
+::: column
+![](img/task_energy.png)
+:::
+::::::
+
+::: notes
+Forecast wrong by 2% and someone starts a gas turbine.
+The missingness point is the good one: the outages are not random, they cluster in
+precisely the conditions you most need to forecast. MNAR, on a power grid.
+:::
+
+## Transport
+
+:::::: columns
+::: column
+**Arrival times across a road network**
+
+- **In:** the network, plus live speed on every segment
+- **Out:** arrival time, with an interval
+- **Fails on:** the long tail — the rare case is the only one that matters
+:::
+::: column
+![](img/task_transport.png)
+:::
+::::::
+
+::: notes
+Ninety-nine percent of driving, and of routing, is trivially easy, and the entire
+problem is the remaining fraction. This is why aggregate accuracy is meaningless
+here - the same argument as the imbalance slides, told about safety instead of
+screening.
+:::
+
+## Sport
+
+:::::: columns
+::: column
+**Expected goals from tracking data**
+
+- **In:** one shot — position, defenders, body part, phase of play
+- **Out:** P(goal) for that shot
+- **Fails on:** small n, and you only see the shots that were taken
+:::
+::: column
+![](img/task_sport.png)
+:::
+::::::
+
+::: notes
+A whole season is a few hundred shots per team - genuinely small data, which is why
+the arguments about xG are statistical arguments. The selection point is the deeper
+one: you never observe the shot the player decided not to take.
+:::
+
+## Public sector
+
+:::::: columns
+::: column
+**Risk scoring for benefits and tax**
+
+- **In:** one household's claim — income, composition, history
+- **Out:** a risk score, and a queue for investigators
+:::
+::: column
+![](img/task_public.png)
+:::
+::::::
+
+::: notes
+Take this one slowly. The model was trained on who had been investigated and found
+at fault before, so it learned who gets investigated - and nationality was among the
+inputs. Its output then generated the next round of investigations, which became the
+next round of training data.
+This is the one domain on the list where the failure ended careers and ruined lives,
+and it is worth saying that the technical error is one they can now name.
+:::
+
+## Which failure mode?
+
+Try to identify what can fail:
+
+1. A demand model was accurate for two years, then a competitor opened. Nobody retrained.
+2. A defect classifier scores 99.8%. The line makes two bad parts per thousand.
+3. A protein model is brilliant on a random split, mediocre on newly solved structures.
+4. A hiring model trained on ten years of decisions reproduces those decisions exactly.
+
+::: notes
+Take all four before revealing. These are deliberately the same four mistakes from
+this morning, wearing different clothes - if the room names them quickly, section 1
+worked.
+:::
+
+## Which failure mode?
+
+1. Competitor opens — **distribution shift**
+2. Defect classifier — **class imbalance**
+3. Protein model — **leakage**
+4. Hiring model — **past decisions**, not merit
+
+::: notes
+Number four is the one to dwell on: there is no bug in it. The data is accurate, the
+split is clean, the metric is fine, and the model is a faithful reproduction of who
+got hired before. Ask what you would even measure to catch it. That question is
+Week 14.
+:::
+
+# 4. What all of these have in common
+
+## The cost of an error is usually not symmetric
+
+| Field | A false positive costs | A false negative costs |
+|---|---|---|
+| **Card fraud** | a blocked card in a queue | the value of the fraud |
+| **Manufacturing** | a good part scrapped | a recall |
+| **Benefits fraud** | a family wrongly accused | some money |
+| **Cancer screening** | a needless biopsy | a death |
+
+::: notes
+Row three is the Dutch case, and it is the row where the institution had the ratio
+backwards. Ask the room to fill in a fifth row for their own final project before
+they write a line of code - if they cannot, they do not yet have a problem.
+This is Week 4: net benefit and decision curves are how you put this in a number.
+:::
+
+## Feedback loops
+
+![](img/feedback.png)
+
+::: notes
+Google Flu Trends from the autopsy slide, the hiring model two slides ago, the Dutch
+benefits model, and every recommender ever shipped. Once a model acts, the data stops
+being a sample of the world and becomes a sample of the world your model made.
+None of the theory in this course covers that arrow. Week 13 on causality is the
+closest we get.
+:::
+
+## Where this course goes
+
+- **Weeks 2–4:** the foundations, on tabular data — every field on that list
+- **Weeks 5–6:** time series — energy, finance, monitoring
+- **Weeks 7–10:** images and volumes — manufacturing, satellites, radiology
+- **Weeks 11–12:** text — support tickets, filings, clinical notes
+- **Weeks 13–14:** causality, bias, privacy, deployment — the public-sector slide
+
+::: notes
+Read the right-hand halves out loud. Every block of the syllabus was on the tour, so
+nothing here is healthcare-specific machinery.
+:::
+
+# 5. Wrapping up
+
+## Sanity checklist for any new dataset
+
+1. What is one row?
+2. Where does the label come from, when is it known, and who is it wrong about?
+3. Which values are impossible, and which are in the wrong unit?
+4. What is missing, and why?
+5. What is the base rate?
+6. How do I split so leakage is impossible?
+7. What would a trivial baseline score?
+
+::: notes
+Tell them to photograph this slide. It is the last section of the recitation notebook and
+they will answer all seven against MIMIC before they leave.
+:::
+
+## Apply it
+
+> A vendor offers you 40 000 chest X-rays from three hospitals, labelled
+> pneumonia / no pneumonia by a model that read the radiology reports.
+
+Work through the seven. Which ones can you even answer?
+
+::: notes
+Three minutes in pairs, then collect answers on questions 1, 2 and 6 only - that is
+enough to make the point and it fits the time.
+The answers you are steering towards: one row is ambiguous (a study? a patient? a
+visit?); the label is a model reading a human's summary of the image, so it is two
+proxies deep; and without the hospital you cannot split by site, which after this
+morning they should recognise as fatal. Somebody usually asks whether you can recover
+the site from the images - yes, and that is exactly the problem.
+:::
 
 ## Recitation today
 
@@ -717,17 +1007,3 @@ Left: Tu et al., MultiMedBench (CC BY 4.0). Right: The Echo, 1920 (public domain
 - **TO DO:** finish the recitation notebook, including the open questions at the end
 - **Next lecture:** advanced feature engineering, and missing-ness done properly
 
-## Before you go
-
-On a slip of paper, one line each:
-
-- One thing you will check before you trust a dataset
-- One thing today that did not make sense
-
-Leave it on the desk on your way out.
-
-::: notes
-Two minutes, and do not skip it when you run late - this is the only feedback you
-get before next week. Read them on the way back and open the next lecture with the
-two most common answers to the second question.
-:::

@@ -35,3 +35,8 @@ It is a constructed illustration; the underlying phenomenon is Zech et al. 2018.
 The `*_alt.png` files are the non-medical twin of a section-1 concept, from the same script and equally synthetic (`errors_alt_bis.png` is a second figure for the same concept, not a sixth concept).
 `shortcut_alt.png` is a drawing, not a photograph: it illustrates the husky-vs-wolf experiment in Ribeiro et al. 2016, and the slide says so.
 `imbalance_alt.png` is the only one carrying real numbers: 492 frauds in 284 807 transactions, the class balance of the ULB/Worldline credit-card dataset.
+
+`dsmap.png` and `feedback.png` illustrate sections 3 and 4. Both draw an argument rather than a dataset: nothing is seeded because nothing is sampled, and nothing on them is a measurement.
+`dsmap.png` asserts which of section 2's five data shapes each field routinely works with. It is a judgement call, not a survey — edit the `uses` matrix in the script if you disagree with a cell.
+
+The ten `task_*.png` files sit in the right-hand column of the section 3 field slides. Each depicts the task itself — the input as it looks, with the model's output marked on it — and each is invented, not sampled from that field's real data. They are drawn near-square because a Comparison slide gives them half the width.

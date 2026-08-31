@@ -9,6 +9,10 @@ FIGURES := $(foreach f,$(FIGURE_STEMS),Course01/img/$(f)_q.png Course01/img/$(f)
 ALT_STEMS := noise errors imbalance shift shortcut
 FIGURES += $(foreach f,$(ALT_STEMS),Course01/img/$(f)_alt.png)
 FIGURES += Course01/img/errors_alt_bis.png
+# section 3: the two argument diagrams and one task figure per field
+FIGURES += Course01/img/dsmap.png Course01/img/feedback.png
+TASK_STEMS := finance retail manufacturing climate energy transport sport public science healthcare
+FIGURES += $(foreach f,$(TASK_STEMS),Course01/img/task_$(f).png)
 
 .PHONY: slides figures clean-slides clean-figures
 slides: $(SLIDE_TARGETS)

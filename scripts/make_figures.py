@@ -21,7 +21,7 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import Rectangle
+from matplotlib.patches import FancyBboxPatch, Rectangle
 
 INK = "#1b1b1b"
 GREY = "#9aa0a6"
@@ -827,6 +827,497 @@ def fig_shortcut_alt(out: Path) -> None:
     plt.close(fig)
 
 
+# ===========================================================================
+# Section 3 figures. These draw an argument, not a dataset: nothing to seed,
+# nothing measured, and the slides say so.
+# ===========================================================================
+
+
+def _box(ax, x, y, w, h, text, facecolor, edgecolor, fontsize=10.5, weight="normal"):
+    """A rounded label box in axes coordinates, used by the flow diagram."""
+    ax.add_patch(
+        FancyBboxPatch(
+            (x, y),
+            w,
+            h,
+            boxstyle="round,pad=0.012,rounding_size=0.02",
+            facecolor=facecolor,
+            edgecolor=edgecolor,
+            lw=1.6,
+        )
+    )
+    ax.text(
+        x + w / 2,
+        y + h / 2,
+        text,
+        ha="center",
+        va="center",
+        fontsize=fontsize,
+        color=INK,
+        fontweight=weight,
+    )
+
+
+# ------------------------------------------------------------------ the map
+def fig_dsmap(out: Path) -> None:
+    """Ten fields against the five data types from section 2.
+
+    The point is the density of the grid: no column belongs to one field, and no
+    field lives in one column. That is what "the theory is domain-general" means.
+    """
+    domains = [
+        "Finance",
+        "Retail",
+        "Manufacturing",
+        "Climate",
+        "Energy",
+        "Transport",
+        "Sport",
+        "Public sector",
+        "Science",
+        "Healthcare",
+    ]
+    types = ["tabular", "1D signal", "2D image", "3D volume", "text"]
+    # rows: which of the five shapes that field routinely works with
+    uses = [
+        [1, 1, 0, 0, 1],
+        [1, 1, 1, 0, 1],
+        [1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 0],
+        [1, 1, 1, 0, 0],
+        [1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 0],
+        [1, 1, 1, 0, 1],
+        [1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1],
+    ]
+
+    fig, ax = plt.subplots(figsize=(12.2, 5.0))
+    for i, row in enumerate(uses):
+        for j, on in enumerate(row):
+            if on:
+                ax.scatter(
+                    j,
+                    i,
+                    s=340,
+                    color=BLUE if i < len(domains) - 1 else RED,
+                    alpha=0.85,
+                    edgecolors="none",
+                )
+    ax.set_xticks(range(len(types)), types, fontsize=12)
+    ax.set_yticks(range(len(domains)), domains, fontsize=11.5)
+    ax.set_xlim(-0.6, len(types) - 0.4)
+    ax.set_ylim(-0.7, len(domains) - 0.3)
+    ax.invert_yaxis()
+    ax.xaxis.set_ticks_position("top")
+    ax.tick_params(length=0)
+    ax.grid(color=GREY, alpha=0.25, lw=0.8)
+    ax.set_axisbelow(True)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    fig.suptitle(
+        "Five shapes of data. Every field uses most of them.",
+        fontsize=13.5,
+        y=1.0,
+        fontweight="bold",
+    )
+    fig.savefig(out / "dsmap.png")
+    plt.close(fig)
+
+
+# ------------------------------------------------------------- feedback loop
+def fig_feedback(out: Path) -> None:
+    """The arrow the textbook leaves out: a deployed model changes its own inputs."""
+    stages = [
+        "the world",
+        "you collect\ndata",
+        "you fit\na model",
+        "someone\nacts on it",
+    ]
+
+    fig, ax = plt.subplots(figsize=(12.4, 4.6))
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.axis("off")
+
+    n = len(stages)
+    w, gap = 0.185, 0.075
+    left = (1 - (n * w + (n - 1) * gap)) / 2
+    centres = []
+    for i, text in enumerate(stages):
+        x = left + i * (w + gap)
+        centres.append(x + w / 2)
+        _box(ax, x, 0.55, w, 0.20, text, "white", BLUE, fontsize=12, weight="bold")
+        if i:
+            ax.annotate(
+                "",
+                xy=(x - 0.010, 0.65),
+                xytext=(x - gap + 0.010, 0.65),
+                arrowprops={"arrowstyle": "-|>", "color": GREY, "lw": 1.8},
+            )
+
+    # the return arrow, which is the whole point of the figure
+    ax.annotate(
+        "",
+        xy=(centres[0], 0.53),
+        xytext=(centres[-1], 0.53),
+        arrowprops={
+            "arrowstyle": "-|>",
+            "color": RED,
+            "lw": 2.4,
+            "connectionstyle": "arc3,rad=-0.45",
+        },
+    )
+    ax.text(
+        0.5,
+        0.40,
+        "and the data you collect next year\nis a consequence of what your model did",
+        ha="center",
+        fontsize=12.5,
+        color=RED,
+        fontweight="bold",
+    )
+    ax.text(
+        0.5,
+        0.92,
+        "The textbook has no arrow back",
+        ha="center",
+        fontsize=14.5,
+        fontweight="bold",
+        color=INK,
+    )
+    fig.savefig(out / "feedback.png")
+    plt.close(fig)
+
+
+# ===========================================================================
+# Section 3 task figures. One per field, drawn to sit in the right-hand column
+# of a Comparison slide, so they are near-square rather than wide. Each shows
+# the task itself: the input as it really looks, and the output marked on it.
+# ===========================================================================
+
+TASK_FIGSIZE = (5.4, 4.6)
+
+
+def _task(title: str):
+    """Open a column-sized figure with a single axis and a short title."""
+    fig, ax = plt.subplots(figsize=TASK_FIGSIZE)
+    ax.set_title(title, fontsize=12.5, color=INK)
+    return fig, ax
+
+
+def _out(ax, text: str, color=RED):
+    """Stamp the model's output on the panel, in the same place every time."""
+    ax.text(
+        0.5,
+        -0.20,
+        text,
+        transform=ax.transAxes,
+        ha="center",
+        va="top",
+        fontsize=13,
+        color=color,
+        fontweight="bold",
+    )
+
+
+def fig_task_finance(out: Path) -> None:
+    rng = np.random.default_rng(20)
+    n = 220
+    hour = rng.uniform(0, 24, n)
+    amount = rng.lognormal(np.log(28), 0.9, n)
+    fig, ax = _task("one cardholder, one day")
+    ax.scatter(hour, amount, s=26, color=BLUE, alpha=0.55, edgecolors="none")
+    ax.scatter([3.1], [1840], s=190, color=RED, zorder=3)
+    ax.annotate(
+        "03:07, 1 840 €\nnew merchant",
+        (3.1, 1840),
+        (8.5, 900),
+        fontsize=10.5,
+        color=RED,
+        arrowprops={"arrowstyle": "->", "color": RED},
+    )
+    ax.set_yscale("log")
+    ax.set_ylim(1.5, 6000)
+    ax.set_xlabel("hour of day")
+    ax.set_ylabel("amount (€)")
+    ax.set_xlim(0, 24)
+    _out(ax, "P(fraud) = 0.94  →  block")
+    fig.savefig(out / "task_finance.png")
+    plt.close(fig)
+
+
+def fig_task_retail(out: Path) -> None:
+    rng = np.random.default_rng(21)
+    weeks = np.arange(78)
+    hist = 400 + 55 * np.sin(2 * np.pi * weeks / 52) + 1.5 * weeks
+    sold = hist + rng.normal(0, 18, weeks.size)
+    fut = np.arange(78, 92)
+    pred = 400 + 55 * np.sin(2 * np.pi * fut / 52) + 1.5 * fut
+
+    fig, ax = _task("one product, one store")
+    ax.plot(weeks, sold, color=INK, lw=1.4, label="sold")
+    ax.plot(fut, pred, color=RED, lw=2.2, ls="--", label="forecast")
+    ax.fill_between(fut, pred - 45, pred + 45, color=RED, alpha=0.18)
+    ax.axvline(78, color=GREY, lw=1.2)
+    ax.set_xlabel("week")
+    ax.set_ylabel("units")
+    ax.legend(fontsize=9.5, frameon=False, loc="upper left")
+    _out(ax, "units for the next 14 weeks")
+    fig.savefig(out / "task_retail.png")
+    plt.close(fig)
+
+
+def fig_task_manufacturing(out: Path) -> None:
+    rng = np.random.default_rng(22)
+    size = 200
+    part = 0.55 + 0.10 * blur(rng.normal(0, 1, (size, size)), 7)
+    yy, xx = np.mgrid[0:size, 0:size]
+    scratch = np.exp(-(((yy - 0.9 * xx + 40) / 3.0) ** 2)) * (xx > 95) * (xx < 150)
+    part = np.clip(part - 0.42 * scratch, 0, 1)
+
+    fig, ax = _task("one part, photographed")
+    ax.imshow(part, cmap="gray", vmin=0, vmax=1)
+    ax.add_patch(Rectangle((92, 48), 62, 62, facecolor="none", edgecolor=RED, lw=2.4))
+    ax.text(154, 44, "0.87", color=RED, fontsize=12, fontweight="bold")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    _out(ax, "defect  →  divert the part")
+    fig.savefig(out / "task_manufacturing.png")
+    plt.close(fig)
+
+
+def fig_task_climate(out: Path) -> None:
+    rng = np.random.default_rng(23)
+    field = blur(rng.normal(0, 1, (60, 72)), 11)
+    field /= np.abs(field).max()
+
+    fig, ax = _task("the atmosphere on a grid, now")
+    m = ax.contourf(field, levels=14, cmap="RdBu_r", vmin=-1, vmax=1)
+    ax.contour(field, levels=14, colors="white", linewidths=0.5)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    fig.colorbar(m, ax=ax, fraction=0.036, pad=0.03).set_label(
+        "pressure anomaly", fontsize=9.5
+    )
+    _out(ax, "the same grid, 6 days ahead")
+    fig.savefig(out / "task_climate.png")
+    plt.close(fig)
+
+
+def fig_task_energy(out: Path) -> None:
+    rng = np.random.default_rng(24)
+    half_hours = np.arange(48)
+    # overnight trough, a morning shoulder, and the evening peak the forecast is for
+    load = (
+        20.5
+        + 7.5 * np.exp(-(((half_hours - 18) / 4.5) ** 2))
+        + 15.0 * np.exp(-(((half_hours - 38) / 3.2) ** 2))
+    )
+    issued = 25  # the forecast is made at 12:30 for a peak at 19:00
+
+    fig, ax = _task("the grid, in half-hour steps")
+    ax.plot(
+        half_hours[: issued + 1],
+        load[: issued + 1] + rng.normal(0, 0.35, issued + 1),
+        color=INK,
+        lw=1.6,
+        label="actual",
+    )
+    ax.plot(
+        half_hours[issued:], load[issued:], color=RED, lw=2.2, ls="--", label="forecast"
+    )
+    ax.fill_between(
+        half_hours[issued:],
+        load[issued:] - 1.7,
+        load[issued:] + 1.7,
+        color=RED,
+        alpha=0.18,
+    )
+    ax.set_xticks(
+        [0, 12, 24, 36, 47], ["00:00", "06:00", "12:00", "18:00", "24:00"], fontsize=9.5
+    )
+    ax.set_ylabel("demand (GW)")
+    ax.legend(fontsize=9.5, frameon=False, loc="upper left")
+    _out(ax, "the evening peak, 6 h early")
+    fig.savefig(out / "task_energy.png")
+    plt.close(fig)
+
+
+def fig_task_transport(out: Path) -> None:
+    rng = np.random.default_rng(25)
+    fig, ax = _task("a road network, right now")
+    for i in range(7):
+        ax.plot([0, 6], [i, i], color=GREY, lw=1.1, alpha=0.6)
+        ax.plot([i - 0.5, i - 0.5], [0, 6], color=GREY, lw=1.1, alpha=0.6)
+    # congestion on a handful of links
+    for _ in range(14):
+        x, y = rng.integers(0, 6), rng.integers(0, 6)
+        ax.plot(
+            [x - 0.5, x + 0.5],
+            [y, y],
+            color=AMBER,
+            lw=3.4,
+            alpha=0.85,
+            solid_capstyle="butt",
+        )
+    route_x = [0.5, 2.5, 2.5, 4.5, 4.5]
+    route_y = [1.0, 1.0, 4.0, 4.0, 5.0]
+    ax.plot(route_x, route_y, color=BLUE, lw=3.6, solid_capstyle="round")
+    ax.scatter([0.5], [1.0], s=90, color=BLUE, zorder=3)
+    ax.scatter([4.5], [5.0], s=150, color=RED, marker="*", zorder=3)
+    ax.set_xlim(-0.8, 6.2)
+    ax.set_ylim(-0.5, 6.3)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    _out(ax, "arrival in 14 min ± 3")
+    fig.savefig(out / "task_transport.png")
+    plt.close(fig)
+
+
+def fig_task_sport(out: Path) -> None:
+    rng = np.random.default_rng(26)
+    n = 70
+    x = rng.beta(2.4, 2.0, n) * 52
+    y = 34 + rng.normal(0, 11, n)
+    dist = np.hypot(52 - x, y - 34)
+    xg = np.clip(0.9 * np.exp(-dist / 9.0), 0.01, 0.95)
+
+    fig, ax = _task("every shot this season")
+    ax.add_patch(Rectangle((0, 0), 52, 68, facecolor="none", edgecolor=GREY, lw=1.4))
+    ax.add_patch(
+        Rectangle((36, 13.85), 16, 40.3, facecolor="none", edgecolor=GREY, lw=1.2)
+    )
+    ax.add_patch(
+        Rectangle((46.5, 24.85), 5.5, 18.3, facecolor="none", edgecolor=GREY, lw=1.2)
+    )
+    s = ax.scatter(
+        x,
+        y,
+        c=xg,
+        s=40 + 220 * xg,
+        cmap="YlOrRd",
+        vmin=0,
+        vmax=0.8,
+        edgecolors=GREY,
+        lw=0.4,
+    )
+    fig.colorbar(s, ax=ax, fraction=0.036, pad=0.03).set_label(
+        "expected goals", fontsize=9.5
+    )
+    ax.set_xlim(-1, 53)
+    ax.set_ylim(-1, 69)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_aspect("equal")
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    _out(ax, "P(goal) for each shot")
+    fig.savefig(out / "task_sport.png")
+    plt.close(fig)
+
+
+def fig_task_public(out: Path) -> None:
+    rng = np.random.default_rng(27)
+    n = 14
+    score = np.sort(rng.beta(1.7, 3.0, n))[::-1]
+    colors = [RED if v > 0.55 else (AMBER if v > 0.38 else GREY) for v in score]
+
+    fig, ax = _task("one household, one claim")
+    ax.barh(range(n)[::-1], score, color=colors, height=0.62)
+    ax.axvline(0.55, color=INK, lw=1.6, ls="--")
+    ax.text(
+        0.57, n - 1.4, "investigate\nabove here", fontsize=10.5, color=INK, va="top"
+    )
+    ax.set_yticks(
+        range(n)[::-1], [f"claim {i + 1:02d}" for i in range(n)], fontsize=8.5
+    )
+    ax.set_xlabel("risk score")
+    ax.set_xlim(0, 1)
+    ax.tick_params(axis="y", length=0)
+    ax.spines["left"].set_visible(False)
+    _out(ax, "a queue for the investigators")
+    fig.savefig(out / "task_public.png")
+    plt.close(fig)
+
+
+def fig_task_science(out: Path) -> None:
+    rng = np.random.default_rng(28)
+    n = 90
+    idx = np.arange(n)
+    gap = idx[:, None] - idx[None, :]
+
+    # the backbone diagonal, thickened where the chain is helical
+    contact = np.exp(-(gap**2) / 5.0)
+    for a, b in ((10, 28), (44, 60)):
+        run = ((idx >= a) & (idx < b))[:, None] & ((idx >= a) & (idx < b))[None, :]
+        contact += 0.75 * np.exp(-(gap**2) / 14.0) * run
+
+    # one beta hairpin: a short anti-diagonal segment, not a line across the map
+    for i in range(30, 44):
+        j = 74 - (i - 30)
+        contact[i, j] = contact[j, i] = 1.0
+        contact[i, j - 1] = contact[j - 1, i] = 0.6
+
+    # a couple of tertiary contacts, far apart in sequence
+    for i, j in ((18, 68), (52, 84)):
+        blob = np.exp(-(((idx[:, None] - i) ** 2 + (idx[None, :] - j) ** 2) / 4.0))
+        contact += 0.9 * (blob + blob.T)
+
+    contact += 0.02 * rng.random((n, n))
+
+    fig, ax = _task("one amino-acid sequence")
+    ax.imshow(
+        np.clip(contact, 0, 1), cmap="Greys", vmin=0, vmax=1, interpolation="nearest"
+    )
+    ax.set_xlabel("residue")
+    ax.set_ylabel("residue")
+    _out(ax, "which residues touch  →  the fold")
+    fig.savefig(out / "task_science.png")
+    plt.close(fig)
+
+
+def fig_task_healthcare(out: Path) -> None:
+    rng = np.random.default_rng(29)
+    hours = np.linspace(0, 24, 160)
+    hr = 82 + 14 * np.tanh((hours - 15) / 3.5) + rng.normal(0, 2.6, hours.size)
+    risk = 1 / (1 + np.exp(-(hours - 17) / 2.2))
+
+    fig, ax = _task("one ICU stay, first 24 hours")
+    ax.plot(hours, hr, color=BLUE, lw=1.5)
+    ax.set_xlabel("hours since admission")
+    ax.set_ylabel("heart rate (bpm)", color=BLUE)
+    ax.tick_params(axis="y", labelcolor=BLUE)
+
+    ax2 = ax.twinx()
+    ax2.plot(hours, risk, color=RED, lw=2.4)
+    ax2.axhline(0.5, color=GREY, ls="--", lw=1.2)
+    ax2.set_ylabel("P(deterioration)", color=RED)
+    ax2.tick_params(axis="y", labelcolor=RED)
+    ax2.set_ylim(0, 1)
+    ax2.spines["right"].set_visible(True)
+    _out(ax, "escalate, 6 h before the event")
+    fig.savefig(out / "task_healthcare.png")
+    plt.close(fig)
+
+
+TASKS = (
+    fig_task_finance,
+    fig_task_retail,
+    fig_task_manufacturing,
+    fig_task_climate,
+    fig_task_energy,
+    fig_task_transport,
+    fig_task_sport,
+    fig_task_public,
+    fig_task_science,
+    fig_task_healthcare,
+)
+
+
 STAGED = (fig_noise, fig_missingness, fig_imbalance, fig_shift, fig_shortcut)
 SINGLE = (
     fig_noise_alt,
@@ -835,6 +1326,8 @@ SINGLE = (
     fig_imbalance_alt,
     fig_shift_alt,
     fig_shortcut_alt,
+    fig_dsmap,
+    fig_feedback,
 )
 
 
@@ -847,7 +1340,7 @@ def main() -> None:
         for reveal in (False, True):
             fn(out, reveal)
             print(f"{out / stage_name(name, reveal)}")
-    for fn in SINGLE:
+    for fn in SINGLE + TASKS:
         fn(out)
         print(f"{out / (fn.__name__.removeprefix('fig_') + '.png')}")
 
