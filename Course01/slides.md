@@ -980,7 +980,7 @@ they will answer all seven against MIMIC before they leave.
 > A vendor offers you 40 000 chest X-rays from three hospitals, labelled
 > pneumonia / no pneumonia by a model that read the radiology reports.
 
-Work through the seven. Which ones can you even answer?
+Work through the seven.
 
 ::: notes
 Three minutes in pairs, then collect answers on questions 1, 2 and 6 only - that is
