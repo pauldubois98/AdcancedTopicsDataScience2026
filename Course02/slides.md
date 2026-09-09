@@ -22,14 +22,7 @@ The point of the section: most of the accuracy on tabular and time-stamped data
 comes from the feature table, not from the estimator.
 :::
 
-## Three families of time-aware features
-| Family | Answers |
-|---|---|
-| **Temporal** | *When* did it happen? |
-| **Aggregation windows** | What has it been like *recently*? |
-| **Lags** | What was it *before*, and how fast is it moving? |
-
-## Temporal features: decompose the timestamp
+## Temporal feature: decompose the timestamp
 A timestamp is a terrible feature; what it *contains* is not:
 
 ```python
@@ -49,7 +42,7 @@ Ask the room what a "night admission" flag could proxy for: severity, staffing
 levels, a different referral path.
 :::
 
-## Temporal features: cyclical encoding
+## Temporal feature: cyclical encoding
 Hour 23 and hour 0 are **one hour apart**, not 23:
 
 ```python
@@ -76,7 +69,7 @@ Reminder that trees do not care — they can cut the raw hour at 23 and at 0 —
 linear model or network does.
 :::
 
-## Temporal features: elapsed time
+## Temporal feature: elapsed time
 Often the strongest single feature in the table:
 
 ```python
@@ -116,7 +109,7 @@ Two remarks:
 - **Several windows** let the model compare short vs long term
 - `hr_mean_6h - hr_mean_24h` is a trend detector in one column
 
-## Aggregation windows: in code
+## Aggregation windows
 ```python
 g = df.groupby("patient")     # sorted by ts
 w = g.rolling("6h", on="timestamp")
@@ -178,16 +171,15 @@ The past values themselves:
 hr = df.groupby("patient")["heart_rate"]
 
 df["hr_lag1"]  = hr.shift(1)   # where it was
-df["hr_lag2"]  = hr.shift(2)
-df["hr_delta"] = hr.diff()     # how much
-df["hr_rate"]  = df.hr_delta / df.h_since_obs
+df["hr_delta"] = hr.diff()     # how much changed
+df["hr_rate"]  = df.hr_delta / df.h_since_obs # how fast it changes
 ```
 
 - **Lag:** where it was — **difference:** how much it moved —
   **rate:** how fast it moved
 - The rate is often the best of the three
 
-## Lag features: what they look like
+## Lag features
 | t | heart_rate | hr_lag1 | hr_delta | hr_mean_6h |
 |---|---|---|---|---|
 | 08:15 | 78 | — | — | 78 |
@@ -215,7 +207,7 @@ which is exactly the bridge into part 3.
 
 # 2. A catalogue of techniques
 
-## Log transformation — *basic*
+## Log transformation
 Compress a right-skewed variable so the long tail stops dominating.
 
 **Example:** length of stay runs 1–90 days; most patients are at 2–3.
@@ -240,7 +232,7 @@ The sentence that makes it click: on a log axis, a fixed distance is a fixed RAT
 the scale the clinical question actually lives on.
 :::
 
-## One-hot encoding — *basic*
+## One-hot encoding
 Turn an unordered category into one binary column per level.
 
 **Example:** `admission_type` ∈ {emergency, elective, transfer} → 3 columns.
@@ -249,7 +241,7 @@ Turn an unordered category into one binary column per level.
 OneHotEncoder(handle_unknown="ignore")
 ```
 
-- Never encode it as 1/2/3: that invents an order
+- Avoid encoding as 1/2/3: it invents an order
 
 ## One-hot encoding example
 
@@ -265,7 +257,7 @@ appear at test time, and that high-cardinality columns are where one-hot stops b
 reasonable — which is the "learned embeddings" slide later.
 :::
 
-## Standardization — *basic*
+## Standardization
 Centre and rescale so every feature is in comparable units.
 
 **Example:** `heart_rate` ≈ 70, `creatinine` ≈ 1.1 — without scaling, any
@@ -291,7 +283,7 @@ on the whole dataset has already seen the test rows' mean, which is leakage — 
 3 builds the pipeline that makes this automatic.
 :::
 
-## Binning — *basic*
+## Binning
 Cut a continuous variable into ordered bands.
 
 **Example:** age → `<18`, `18-64`, `65-79`, `80+`, the bands clinicians use.
@@ -318,7 +310,7 @@ already use is a defensible choice; picking cut points by looking at the outcome
 not — that is fitting on the test set by hand.
 :::
 
-## Polynomial features — *intermediate*
+## Polynomial features
 Add powers of a variable so a linear model can bend.
 
 **Example:** in-hospital risk is **U-shaped** in age — high for infants, low in
@@ -344,7 +336,7 @@ Two warnings on the slide: standardise first, or age² is in the tens of thousan
 and dominates every penalty; and stop at degree 2 or 3 unless you have a reason.
 :::
 
-## Interaction features — *intermediate*
+## Interaction features
 The effect of one variable depends on another: give the model the product.
 
 **Example:** a creatinine of 1.4 is mild in a 30-year-old and alarming in an
@@ -368,25 +360,11 @@ interaction. Linear models and, to a lesser extent, networks need you to hand it
 over.
 :::
 
-## Lag / rolling features — *intermediate*
-Where the value was, and what it has been recently.
-
-**Example:** heart rate now vs 6 hours ago.
-
-```python
-hr = df.groupby("patient")["heart_rate"]
-df["hr_lag1"]  = hr.shift(1)
-df["hr_delta"] = hr.diff()
-```
-
-- Combine with rolling windows: `hr_mean_6h`, `hr_std_24h`
-- The workhorse of any time-stamped dataset
-
-## Group-relative features — *advanced*
+## Group-relative features
 Compare a value to its group instead of to the whole population.
 
 **Example:** a heart rate of 95 is unremarkable in the ICU and high on a
-general ward — so use the z-score **within the ward**.
+general ward.
 
 ```python
 g  = df.groupby("ward")["heart_rate"]
@@ -395,8 +373,6 @@ sd = g.transform("std")
 df["hr_z_ward"] = (df.heart_rate - mu) / sd
 ```
 
-- Removes a site effect you do not want the model to learn
-- Also useful per patient: deviation from that patient's own baseline
 
 ## Group-relative features example
 
@@ -413,7 +389,7 @@ case mix. Same trick per patient — deviation from their own baseline — is of
 stronger still.
 :::
 
-## Learned embeddings — *advanced*
+## Learned embeddings
 Map a high-cardinality category to a dense vector learned with the model.
 
 **Example:** 15 000 ICD-10 codes → 32 numbers each, trained jointly with the
@@ -442,8 +418,8 @@ particular hospital — are a warning. Flag that this is the first appearance of
 representation learning, which is the rest of the course.
 :::
 
-## Representation learning — *advanced*
-Stop hand-writing features: let the network learn them from the raw signal.
+## Representation learning
+Stop hand-writing features: a the network learn them from the raw signal.
 
 **Example:** feed the raw ECG waveform to a 1-D CNN instead of the hand-crafted
 QRS duration, QT interval, and ST elevation.
@@ -454,31 +430,13 @@ QRS duration, QT interval, and ST elevation.
 # 3. Missing data
 
 ## Missingness is everywhere
-Every real table has holes: a lab that was never ordered, a vital never charted
-— and the lag features we just built add more.
+Every real table has holes: a lab that was never ordered, a vital never charted...
 
 Three bad reflexes:
 
-1. Drop the rows → you may drop the sickest patients
-2. Fill with 0 → 0 is a *value*, and a physiologically absurd one
+1. Drop the rows → you may drop important information
+2. Fill with 0 → 0 is a *value*, and an absurd one
 3. Fill with the mean → the model now sees a fake, over-confident cohort
-
-**The first question is never "what do I fill it with?" but "why is it missing?"**
-
-## Look at the holes first
-
-![](img/missing_map.png)
-
-::: notes
-The first thing to run on any new table. Rows are features, columns are patients,
-black is missing.
-Read the structure out loud: age and sex are complete, bp has scattered holes, and
-troponin, lactate and walk_test go missing in blocks. Blocks mean a REASON — a test
-that is only ordered for certain patients, a device only present in the ICU. That
-reason is often predictive, which is why `add_indicator=True` is nearly free
-accuracy.
-Also point at hr_lag1: those holes are ones we manufactured last section.
-:::
 
 ## Three mechanisms
 | Mechanism | Missingness depends on |
@@ -537,7 +495,7 @@ handled by domain knowledge and a sensitivity analysis, and by writing down what
 assumed.
 :::
 
-## Can I test the mechanism?
+## Test the mechanism?
 MCAR vs MAR is **testable-ish**: does missingness relate to observed columns?
 
 ```python
@@ -594,7 +552,7 @@ That is the argument for conditional imputation (kNN, MICE) and for keeping the
 indicator column.
 :::
 
-## Why single imputation is not enough
+## Single imputation is not enough
 You filled in a number and then **pretended you had measured it**.
 
 - The point estimate can be fine
@@ -613,7 +571,7 @@ You filled in a number and then **pretended you had measured it**.
 
 - The m datasets differ **only where data was missing**
 
-## Multiple imputation illustration
+## Multiple imputation
 
 ![](img/mice.png)
 
@@ -735,7 +693,7 @@ by eye first, then reveal the numbers — they usually get the order right and t
 margins wrong.
 :::
 
-## The loss, written out
+## The loss
 
 ![](img/eq_mse.png)
 
@@ -1055,7 +1013,7 @@ hundred. Contrast this with boosting, two slides from now, where it is not true.
 
 # 8. Boosting
 
-## The other way to use many trees
+## Combine many trees differently
 
 ![](img/boosting_stages.png)
 
@@ -1123,7 +1081,7 @@ with logistic regression, where every point pulls a little, and with a tree, whe
 one distant row can change a split near the root.
 :::
 
-## What it minimises
+## The loss
 
 ![](img/eq_svm.png)
 
