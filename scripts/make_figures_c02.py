@@ -361,7 +361,7 @@ def fig_lags(out: Path) -> None:
             f"hr_rate = {(hr[i] - hr[i - 1]) / (t[i] - t[i - 1]):+.1f} bpm/h",
             fontsize=12.5, color=GREEN, va="bottom")
     ax.plot([t[0]], [hr[0]], "o", color=INK, ms=10, zorder=4)
-    ax.text(t[0], hr[0] - 1.2, "first row: the lag is missing,\nand that is normal",
+    ax.text(t[0], hr[0] + 1.2, "first row: the lag is missing",
             fontsize=11.5, color=INK, ha="left", va="top")
 
     ax.set_xlabel("hours since admission")
