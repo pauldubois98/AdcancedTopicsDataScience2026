@@ -1676,10 +1676,18 @@ def fig_concept_map(out: Path) -> None:
     fig, ax = plt.subplots(figsize=(13.2, 6.0))
     blank(ax)
     box(ax, (0.5, 0.945), 0.26, 0.08, "GENERALIZATION", ec=INK, fs=13.5)
-    box(ax, (0.30, 0.80), 0.24, 0.07, "model complexity", ec=INK, fs=12)
-    box(ax, (0.76, 0.80), 0.16, 0.07, "data", ec=INK, fs=12)
-    arrow(ax, (0.45, 0.905), (0.34, 0.836))
-    arrow(ax, (0.55, 0.905), (0.72, 0.836))
+    box(ax, (0.27, 0.80), 0.24, 0.07, "model complexity", ec=INK, fs=12)
+    box(ax, (0.58, 0.80), 0.13, 0.07, "data", ec=INK, fs=12)
+    arrow(ax, (0.45, 0.905), (0.32, 0.836))
+    arrow(ax, (0.53, 0.905), (0.57, 0.836))
+
+    # how the session reasons about all of it, kept as its own right-hand branch
+    box(ax, (0.87, 0.80), 0.23, 0.07, "bias–variance", ec=INK, fs=12)
+    arrow(ax, (0.58, 0.912), (0.80, 0.838))
+    box(ax, (0.87, 0.645), 0.23, 0.07, "double descent", ec=INK, fs=12)
+    arrow(ax, (0.87, 0.765), (0.87, 0.681))
+    ax.text(0.87, 0.565, "more parameters than rows", ha="center", fontsize=10.5,
+            color=GREY)
 
     box(ax, (0.13, 0.645), 0.20, 0.07, "regularization", ec=BLUE, fs=12)
     box(ax, (0.47, 0.645), 0.17, 0.07, "ensembles", ec=GREEN, fs=12)
@@ -1706,6 +1714,8 @@ def fig_concept_map(out: Path) -> None:
 
     box(ax, (0.60, 0.115), 0.20, 0.072, "stacking", ec=RED, fs=12)
     arrow(ax, (0.19, 0.315), (0.50, 0.130), color=GREY, lw=1.3)
+    ax.text(0.60, 0.038, "out-of-fold, nested cross-validation", ha="center",
+            fontsize=11, color=RED)
     save(fig, out, "concept_map")
 
 
@@ -1715,6 +1725,7 @@ def fig_recap(out: Path) -> None:
     blank(ax)
     rows = (
         ("the model overfits", "bias–variance", BLUE),
+        ("more parameters than rows", "double descent, the modern view", BLUE),
         ("control complexity", "regularization", BLUE),
         ("too many configurations", "hyperparameter optimization", PURPLE),
         ("search is expensive", "Bayesian optimization", PURPLE),
@@ -1723,12 +1734,13 @@ def fig_recap(out: Path) -> None:
         ("strong tabular baseline", "gradient boosting", AMBER),
         ("state of the art on tables", "XGBoost / LightGBM / CatBoost", AMBER),
         ("complementary errors", "stacking", RED),
-        ("not cheating", "cross-validation, out-of-fold", RED),
+        ("not cheating", "out-of-fold, nested cross-validation", RED),
     )
     ax.text(0.30, 0.95, "PROBLEM", ha="right", fontsize=12.5, color=GREY)
     ax.text(0.40, 0.95, "TECHNIQUE", fontsize=12.5, color=GREY)
+    pitch = 0.80 / max(len(rows) - 1, 1)          # fit whatever number of rows
     for i, (p, t, colour) in enumerate(rows):
-        y = 0.86 - i * 0.088
+        y = 0.86 - i * pitch
         ax.text(0.30, y, p, ha="right", fontsize=12, color=INK, va="center")
         arrow(ax, (0.32, y), (0.38, y), color=colour, lw=1.4)
         ax.text(0.40, y, t, fontsize=12, color=colour, va="center")
