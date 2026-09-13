@@ -29,7 +29,7 @@ actually hit this semester; the right column is only the name of the answer.
 Promise them we come back to this exact table at the end.
 :::
 
-# 1. From training error to generalization
+# From training error to generalization
 
 ## Training error vs test error
 
@@ -53,7 +53,7 @@ This is the single most memorable picture of overfitting — let it sit.
 Ask before revealing the next slide: which of these has the lowest TRAINING error?
 :::
 
-## The same experiment, scored
+## Polynomial fit
 
 ![](img/polyfit_curve.png)
 
@@ -63,7 +63,7 @@ explodes — note the log axis, this is orders of magnitude. The dotted line is 
 noise floor σ²: no model can beat it. A model that appears to beat it is leaking.
 :::
 
-## Two different failures, two different fixes
+## Two different failures
 - High training error, high test → the model **cannot** represent the signal
 - Low training, high test → the model represents the **noise**
 
@@ -85,9 +85,9 @@ Three questions, three terms. Not "which algorithm is best" — that question ha
 answer. Transition straight into the decomposition.
 :::
 
-# 2. The bias–variance tradeoff
+# The bias–variance tradeoff
 
-## The thought experiment
+## Thought experiment
 
 ![](img/bv_targets.png)
 
@@ -109,7 +109,7 @@ Three minutes maximum. It matters as vocabulary, not as an exercise.
 σ² is the floor and cannot be reduced by any model. The other two trade off.
 :::
 
-## The same three capacities, 40 datasets each
+## 40 datasets, each giving a different fit
 
 ![](img/bv_fits.png)
 
@@ -120,7 +120,7 @@ Right: the average is nearly perfect but no individual fit is anywhere near it �
 that is variance. Read the printed numbers aloud; they are computed, not invented.
 :::
 
-## The decomposition, measured
+## Bias-variance decomposition
 
 ![](img/bv_decomposition.png)
 
@@ -132,9 +132,9 @@ size: with ten times more data the minimum shifts right. Capacity should scale
 with n — "which degree is best" has no answer without n.
 :::
 
-# 3. The modern view
+# The modern view
 
-## The classical U is not the whole story
+## Beyond the classical regime
 
 ![](img/double_descent.png)
 
@@ -147,7 +147,7 @@ interpolation threshold — and past it the test error comes DOWN again.
 Flag that this is a schematic; the next slide is the real experiment.
 :::
 
-## Double descent, measured
+## Double descent
 
 ![](img/double_descent_measured.png)
 
@@ -172,7 +172,7 @@ going 106x larger than anywhere else on the sweep, and coming back down once the
 are enough features to spread the fit over. Symptom left, cause right.
 :::
 
-## Past the threshold, the optimizer chooses
+## The optimizer is crucial for under-determined cases
 
 ![](img/interpolation.png)
 
@@ -197,7 +197,7 @@ Worth saying out loud: this is why parameter count is a bad measure of capacity.
 What matters is how strongly the fit is constrained, not how many knobs exist.
 :::
 
-## Regularize, and the peak is simply not there
+## Regularize can reduce the peak
 
 ![](img/dd_ridge.png)
 
@@ -223,7 +223,7 @@ session — constrain the model (regularization), choose the constraints well
 (hyperparameter optimization), average away what is left (ensembles).
 :::
 
-# 4. Regularization
+# Regularization
 
 ## Regularized empirical risk minimization
 ![](img/eq_erm.png)
@@ -257,7 +257,7 @@ is effectively unregularized; do not penalize the intercept; put the scaler insi
 the pipeline so it refits in every CV fold; scan λ on a log grid.
 :::
 
-## What the two penalties do to coefficients
+## Ridge and lasso effect on coefficients
 
 ![](img/reg_path.png)
 
@@ -269,7 +269,7 @@ feature selection for free. Caveat for clinical data: among correlated predictor
 lasso keeps one and drops the rest, which is why elastic net exists.
 :::
 
-## Why L1 is sparse: geometry
+## Ridge's and lasso's geometry
 
 ![](img/l1_l2_geometry.png)
 
@@ -281,7 +281,7 @@ coefficient is exactly zero. In p dimensions the L1 ball has corners, edges and
 faces, most of them low-dimensional. Sparsity is geometry, not a thresholding hack.
 :::
 
-## Regularization is much broader than a penalty
+## Regularization can be done in many ways
 
 ![](img/reg_zoo.png)
 
@@ -294,7 +294,7 @@ Augmentation is a claim about an invariance — a horizontal flip on a chest X-r
 is wrong, because dextrocardia is real. A wrong invariance adds bias.
 :::
 
-## Depth is the same dial on a tree
+## Depth can be used as regularization
 
 ![](img/tree_depth.png)
 
@@ -304,7 +304,7 @@ islands around individual noisy points — a lookup table, zero bias, maximal
 variance. In practice min_samples_leaf is the more robust knob than max_depth.
 :::
 
-## Early stopping: regularization with no penalty term
+## Early stopping can also be used as regularization
 
 ![](img/early_stopping.png)
 
@@ -315,9 +315,9 @@ added to the objective. This is also exactly how you should choose the number of
 trees in part VI, so flag it now.
 :::
 
-# 5–8. The hyperparameter landscape
+# The hyper-parameter landscape
 
-## Parameters vs hyperparameters
+## Parameters vs hyper-parameters
 ![](img/eq_params.png)
 
 ::: notes
@@ -328,7 +328,7 @@ settings that let the model memorize. Hyperparameters must be scored on data the
 fit has not seen. Preprocessing choices count too: scaler, encoder, imputer.
 :::
 
-## Why the search is hard
+## Hyperparameter search is hard
 - Expensive evaluations
 - Noisy
 - Non-convex
@@ -372,7 +372,7 @@ off against each other. Consequence — tuning one knob at a time is unreliable,
 because the best depth depends on the learning rate you happened to fix.
 :::
 
-## Where the three strategies spend their trials
+## Three hyper-parameters search strategies
 
 ![](img/search_compare.png)
 
@@ -383,6 +383,8 @@ Honesty slide: with 1000 cheap parallel fits, random search is hard to beat.
 Bayesian optimization is inherently sequential, and that is its cost. Use it when
 fits take minutes, the budget is 50–500 trials, and you have 3–20 knobs.
 :::
+
+# Bayesian optimization
 
 ## Replace the expensive loss function by a cheap surrogate
 
@@ -483,7 +485,7 @@ measurement's influence reaches, which is the previous slide seen from the other
 side.
 :::
 
-## The second knob: how much noise you allow
+## Noises levels
 
 ![](img/bo_noise.png)
 
@@ -507,7 +509,6 @@ is that it is the knob that decides whether the surrogate interpolates or smooth
 ## Decide where to spend the next fit on
 - The **mean** says where the loss is *probably* low → **exploit**
 - The **band** says where it *could* be low → **explore**
-- An **acquisition function** collapses both into one score per candidate
 - Maximize the *acquisition*, not the model
 
 ::: notes
@@ -522,7 +523,19 @@ we cannot differentiate into maximizing a closed-form function we can evaluate a
 thousands of points for nothing.
 :::
 
-## Bayesian optimization: the whole algorithm
+## Exploration vs exploitation
+
+![](img/acquisition.png)
+
+::: notes
+Two ways to score a candidate. Expected Improvement is large where the mean is
+good OR the uncertainty is big, and balances the two with no knob. UCB gives you
+an explicit dial κ: zero is pure greed, large is near-random, and it is often
+annealed down as budget is consumed. Too greedy misses the global optimum; too
+exploratory never converges. That trade-off is all an acquisition function is.
+:::
+
+## Full algorithm
 
 ![](img/bayesopt.png)
 
@@ -534,7 +547,7 @@ to evaluate. That evaluation is expensive; the acquisition is cheap, so we can
 optimize it densely. Follow one iteration across all three columns.
 :::
 
-## The loop, in five lines
+## The loop (simplified)
 ```python
 # 5-10 random trials to begin
 D = [(x, evaluate(x)) for x in random_start]
@@ -560,19 +573,7 @@ we pay for the sample efficiency, and it is why random search still wins when yo
 have a hundred machines and cheap fits.
 :::
 
-## Exploration vs exploitation
-
-![](img/acquisition.png)
-
-::: notes
-Two ways to score a candidate. Expected Improvement is large where the mean is
-good OR the uncertainty is big, and balances the two with no knob. UCB gives you
-an explicit dial κ: zero is pure greed, large is near-random, and it is often
-annealed down as budget is consumed. Too greedy misses the global optimum; too
-exploratory never converges. That trade-off is all an acquisition function is.
-:::
-
-## Optuna in one function
+## Optuna
 ```python
 def objective(trial):
     depth = trial.suggest_int("depth", 3, 12)
@@ -604,7 +605,7 @@ needs data before it can model anything. The green region is the question this
 plot exists to answer: the curve is flat, more budget is not buying anything, stop.
 :::
 
-## Pruning multiplies the budget
+## Pruning
 
 ![](img/pruning.png)
 
@@ -615,9 +616,9 @@ The danger: prune too early and you kill slow starters — a small learning rate
 looks terrible at round 20 and wins at round 800.
 :::
 
-# 9–12. Ensembles
+# Ensembles
 
-## Averaging, concretely
+## Averaging
 
 ![](img/ensemble_avg_demo.png)
 
@@ -686,7 +687,7 @@ the out-of-bag error estimate for free. And n_estimators cannot overfit — more
 only slower. That stops being true for boosting, which is the rest of the section.
 :::
 
-## Boosting, drawn
+## Boosting
 
 ![](img/boosting_stages.png)
 
@@ -698,7 +699,7 @@ A depth-2 tree is barely better than guessing; the SUM of many is very flexible.
 Bagging averages strong learners; boosting sums weak ones.
 :::
 
-## The running model, spelled out
+## Boosting
 
 ![](img/additive_model.png)
 
@@ -722,7 +723,7 @@ adding early. That is exactly what early stopping does, and what staged_predict
 gives you in sklearn.
 :::
 
-## Shrinkage: how big a step to take
+## Shrinkage
 
 ![](img/shrinkage.png)
 
@@ -766,7 +767,24 @@ knob in two halves: halve η, roughly double M. So do not tune both blindly — 
 η small and choose M by early stopping.
 :::
 
-# 13–15. XGBoost, LightGBM, CatBoost
+# XGBoost, LightGBM, CatBoost
+
+## XGBoost: regularization inside the tree objective
+![](img/eq_xgboost.png)
+
+::: notes
+Read it left to right. First term: the usual loss, but measured on the model we
+already have plus the tree we are about to add — h is what we are solving for.
+Second term: γ times T, the number of leaves — every leaf costs γ, so a leaf has to
+earn its keep. Third term: λ times the sum of squared leaf values w_j — the same
+ridge penalty as in section 2, applied to what each leaf outputs, so no single leaf
+can shout.
+
+The point to make here is structural: the complexity of the tree is written into
+the thing being minimized. Other implementations grow a tree and then prune it;
+here there is nothing to bolt on afterwards, because the price of a leaf is already
+in the objective. Next slide: what falls out when you actually minimize it.
+:::
 
 ## Splitting candidates
 ![](img/xgb_split_search.png)
@@ -800,91 +818,55 @@ sort. This is precisely the step LightGBM replaces by binning the feature into
 ~255 buckets, so the scan is over bins rather than over rows.
 :::
 
-## XGBoost: regularization inside the tree objective
-![](img/eq_xgboost.png)
+## Loss simplification for one leaf
+![](img/eq_leaf_objective.png)
 
 ::: notes
-Read it left to right. First term: the usual loss, but measured on the model we
-already have plus the tree we are about to add — h is what we are solving for.
-Second term: γ times T, the number of leaves — every leaf costs γ, so a leaf has to
-earn its keep. Third term: λ times the sum of squared leaf values w_j — the same
-ridge penalty as in section 2, applied to what each leaf outputs, so no single leaf
-can shout.
+Spend the first minute on the three symbols along the top, because two of them
+share a letter and that trips everybody.
 
-The point to make here is structural: the complexity of the tree is written into
-the thing being minimized. Other implementations grow a tree and then prune it;
-here there is nothing to bolt on afterwards, because the price of a leaf is already
-in the objective. Next slide: what falls out when you actually minimize it.
+h(x_i), with an argument, is the NEW TREE — the thing we are solving for. It is a
+function: give it a row, it returns a number. That is the same h_m as in the
+boosting section, the tree being added to F_{m-1}.
+
+g_i and h_i, with a subscript, are NUMBERS, one pair per row, and they are already
+known before the tree exists: they are the first and second derivative of that
+row's loss, evaluated at the prediction the current model already makes. Say the
+concrete case out loud — for squared loss g_i is the residual and h_i is 1; for log
+loss g_i = p_i − y_i and h_i = p_i(1 − p_i). Slide 64 is entirely about them.
+
+So in the second line, g_i·h(x_i) is a known number times the unknown tree output,
+and ½h_i·h(x_i)² is a known number times that output squared. The unknown appears
+only as h(x_i) — everything else is data. That is why it turns into a quadratic.
+If anyone reads ½h_i h(x_i)² as "the tree squared times the tree", stop and
+separate the two h's again.
+
+Now the moves. One: the loss term is awkward because the new tree sits inside ℓ.
+Taylor-expand to second order around the model we already have — g_i and h_i are
+exactly the coefficients that expansion produces. The leftover term ℓ(y_i, F_{m-1})
+has no tree in it at all, so as far as choosing this tree is concerned it is a
+constant and can be dropped.
+
+Two: use what a tree actually is. A tree is a piecewise-constant function — every
+row landing in leaf j gets the same output w_j. So instead of summing over rows,
+sum over leaves and collect the rows inside each. All the row-level detail
+collapses into two numbers per leaf: G_j, the sum of the g's in that leaf, and H_j,
+the sum of the h's. Note where λ went: the ridge penalty on w_j merges into the
+quadratic coefficient, which is why it will turn up as H_j + λ everywhere from here
+on.
+
+Three, the payoff: look at the sum and notice that w_j appears in exactly one of
+its terms. Nothing couples the leaves — the choice of value in leaf 3 has no
+bearing on leaf 5. So minimising the whole objective over the whole tree is not one
+T-dimensional problem, it is T separate one-dimensional problems, one per leaf, and
+each is a plain quadratic in a single unknown.
+
+That is what makes everything after this slide possible. A quadratic in one
+variable has a closed-form minimum, and its value at that minimum is a number you
+can score a set of rows with — which is the next two slides.
 :::
 
-## g and h
-![](img/xgb_gh.png)
-
-::: notes
-Before the leaf-value formula, say what is in it. Take one row and freeze
-everything else: the model has a current prediction for that row, and the loss has
-a value, a slope and a curvature at that prediction. The slope is g_i — which way
-the prediction should move and how badly. The curvature is h_i — how fast that
-slope changes, so how far it is safe to move.
-
-The table is the part to memorise. For squared loss g is just the residual and h is
-1, which is why plain gradient boosting on squared loss looks like "fit the
-residuals" — it is the same algorithm with h = 1 everywhere. For log loss g = p − y
-and h = p(1−p), so a confident row has h ≈ 0 and hardly counts, while an uncertain
-row near p = 0.5 counts fully.
-
-Two things to stress. First, g and h are recomputed for every row before every
-tree, from the current predictions. Second, once they are computed the tree never
-looks at y again: the whole tree-building problem is expressed in g and h. That is
-what makes swapping the loss cheap.
-:::
-
-## The value of a leaf falls out of that objective
-![](img/eq_leaf_weight.png)
-
-::: notes
-Taylor-expand the loss to second order around the current prediction. g_i and h_i
-are the first and second derivative of the loss at row i — for squared loss g is
-the residual and h is 1, for log loss g is p − y and h is p(1−p). I_j is the set of
-rows landing in leaf j. What is left is a quadratic in w_j, and a quadratic has a
-closed-form minimum: this fraction. No search, no line-search, one division per
-leaf — which is a large part of why XGBoost is fast.
-
-Read the two halves. The numerator is how hard this leaf's rows are pulling and in
-which direction. The denominator is how much evidence backs that pull, plus λ — so
-a leaf holding four uncertain rows is dominated by λ and gets shrunk hard, while a
-leaf holding eighty rows barely notices it. That is exactly "shrink toward 0",
-derived rather than asserted.
-
-Substitute this back into the objective and you get the score of a set of rows,
-G²/(H+λ); the gain of a split is that score after minus before, minus γ. A split is
-made only if the gain is positive. So pruning too is derived from the objective.
-This is what I want them to remember — the mechanism, not the parameter names.
-:::
-
-## Use 1: the leaf value is what the tree predicts
-![](img/xgb_leaf_predict.png)
-
-::: notes
-Walk the row through, left to right. The splits do one job only: they decide which
-leaf the row ends in. They carry no numbers of their own. Once the row is in a
-leaf, that leaf's w* IS the tree's output for it — a regression tree, whatever the
-task, and every row in that leaf gets the same value.
-
-The right side is the arithmetic across trees. Start from F_0, the base score
-(the mean for regression, the log-odds of the base rate for classification). Each
-tree contributes exactly one leaf value, scaled by η, and the predictions
-accumulate. Point out that with η = 0.3 a leaf that solved for −1.2 only moves the
-row by −0.36 — the tree's own answer is deliberately not taken in full.
-
-Two things they should be able to state after this slide. First, a boosted model's
-prediction for a row is a base score plus one number per tree — that is why
-inference is fast and why you can stop at any M. Second, this is all in score
-space: for classification the sigmoid is applied once at the very end, never
-between trees, which is exactly why the trees can stay regression trees.
-:::
-
-## Use 2: scores candidate splits
+## Scores candidate splits
 ![](img/xgb_leaf_score.png)
 
 ::: notes
@@ -915,7 +897,357 @@ happens to the gain as λ grows: every score shrinks, weakly-evidenced splits sh
 fastest, and the tree gets smaller on its own.
 :::
 
-# 16–17. Stacking
+## Gradient and Hessian
+![](img/xgb_gh.png)
+
+::: notes
+Before the leaf-value formula, say what is in it. Take one row and freeze
+everything else: the model has a current prediction for that row, and the loss has
+a value, a slope and a curvature at that prediction. The slope is g_i — which way
+the prediction should move and how badly. The curvature is h_i — how fast that
+slope changes, so how far it is safe to move.
+
+The table is the part to memorise. For squared loss g is just the residual and h is
+1, which is why plain gradient boosting on squared loss looks like "fit the
+residuals" — it is the same algorithm with h = 1 everywhere. For log loss g = p − y
+and h = p(1−p), so a confident row has h ≈ 0 and hardly counts, while an uncertain
+row near p = 0.5 counts fully.
+
+Two things to stress. First, g and h are recomputed for every row before every
+tree, from the current predictions. Second, once they are computed the tree never
+looks at y again: the whole tree-building problem is expressed in g and h. That is
+what makes swapping the loss cheap.
+:::
+
+## Summing trees to predicts the leaf value
+![](img/xgb_leaf_predict.png)
+
+::: notes
+Walk the row through, left to right. The splits do one job only: they decide which
+leaf the row ends in. They carry no numbers of their own. Once the row is in a
+leaf, that leaf's w* IS the tree's output for it — a regression tree, whatever the
+task, and every row in that leaf gets the same value.
+
+The right side is the arithmetic across trees. Start from F_0, the base score
+(the mean for regression, the log-odds of the base rate for classification). Each
+tree contributes exactly one leaf value, scaled by η, and the predictions
+accumulate. Point out that with η = 0.3 a leaf that solved for −1.2 only moves the
+row by −0.36 — the tree's own answer is deliberately not taken in full.
+
+Two things they should be able to state after this slide. First, a boosted model's
+prediction for a row is a base score plus one number per tree — that is why
+inference is fast and why you can stop at any M. Second, this is all in score
+space: for classification the sigmoid is applied once at the very end, never
+between trees, which is exactly why the trees can stay regression trees.
+:::
+
+## LightGBM: bin each feature once
+![](img/lgbm_bins.png)
+
+::: notes
+Say first what LightGBM does NOT change: the objective, the gain, the closed-form
+leaf value — every line of the XGBoost section still holds. What changes is the
+cost of the scan we opened with, because that scan is where a GBDT spends its life:
+features × candidates × nodes × trees.
+
+The idea is to stop asking the exact question. Sort each feature once, up front,
+and cut it into at most 255 bins. Then one pass over the rows fills a histogram:
+per bin, Σg, Σh and a count — which, if you look back at the gain formula, is
+exactly and only what a split needs. Nothing else about the rows is ever consulted
+again.
+
+Two side effects worth naming. Memory: a bin index is one byte where the raw value
+was four or eight, so far more of the data stays in cache. And the binning is
+itself mild regularization — a threshold can no longer be tuned between two
+adjacent rows, which is the "regularization is broader than a penalty" idea again.
+:::
+
+## Finding optimal cut in one sweep
+![](img/lgbm_prefix.png)
+
+::: notes
+This is what the histogram is FOR, in one picture. The gain formula never asks for
+rows — it asks for four numbers: G_L, H_L, G_R, H_R. So the histogram stores two
+things per bin, Σg and Σh, and everything else on this slide is addition.
+
+Top two rows: the histogram itself, filled by one pass over the node's rows.
+Bottom two rows: the running totals of each, left to right. Do the Σg one out loud
+— 2.5, 3.0, 5.0, 6.0, 6.5 — and the Σh one alongside — 1.25, 2.50, 3.50, 5.00,
+7.25. Each column of those two rows is a complete candidate split: the entry under
+bin 4 says that cutting there puts G_L = +6.5 and H_L = 7.25 on the left. The right
+side is free, because the last cell of each running row is the whole node: G = +1.0
+and H = 10.00, so G_R = 1.0 − 6.5 = −5.5 and H_R = 10.00 − 7.25 = 2.75.
+
+Now substitute, and show every step rather than quoting the answer. s(G,H) is
+G²/(H+λ) with λ = 1, so the left child scores 6.5²/8.25 = 5.12, the right child
+(−5.5)²/3.75 = 8.07, and the unsplit node 1.0²/11 = 0.09. Half of (5.12 + 8.07 −
+0.09) is 6.55, minus γ = 0.5, giving a gain of +6.05 — which is exactly the peak
+you will see on the next slide, because it is the same node and the same numbers.
+
+Point out the sign trap while it is on screen: G_R is negative, and it is squared,
+so a child pulling hard downward scores just as well as one pulling upward. The
+gain rewards SEPARATION, not positivity.
+
+Two things to draw out. Building the histogram costs one pass over the node's rows;
+after that the scan costs one pass over 255 numbers no matter whether the node
+holds a thousand rows or a million. And the histogram is a sufficient statistic
+here: it is not an approximation of the rows, it is exactly and only what the gain
+can consume, which is why nothing is lost by throwing the rows away.
+:::
+
+## Scan bin edges, not rows
+![](img/lgbm_binned_scan.png)
+
+::: notes
+Same node, same gain formula, two candidate lists. Grey is the exact scan from the
+start of the section: 39 midpoints. Green is the binned scan: 7 bin edges, and each
+of its points is computed from the histogram alone, in constant time per bin.
+
+Be honest about what is lost. The exact optimum, 0.56, is not on the grid, so the
+binned scan returns 0.62 — the edge beside it. I have drawn 8 bins so you can see
+that; with LightGBM's default 255 the two winners are indistinguishable in
+practice, and the empirical answer to "does it hurt accuracy" is no.
+
+The scaling is the point: exact costs one sort per feature per node, binned costs
+one pass to fill and then a walk over 255 numbers no matter how many rows there
+are. On a million rows that is the difference between minutes and seconds.
+:::
+
+## A child's histogram is the parent minus its sibling
+![](img/lgbm_subtract.png)
+
+::: notes
+First answer the question this slide begs: what is a child's histogram FOR? A
+split does not finish the tree — each child is itself a node that must be split
+next, and to choose ITS split you run the same scan again, which reads a histogram
+built from only the rows that landed in that child. So a histogram is not built
+once per feature; it is built once per node, per feature, all the way down. That
+is the cost this slide is attacking.
+
+Head off the question that always follows: does a child get fewer bins? No. The bin
+edges are a property of the FEATURE, chosen once from its quantiles before any tree
+exists, and frozen for the whole run. Every node uses the same 255 bins. What a
+split divides is the rows — 256 rows might go 120 and 136 — while both children
+still carry a 255-long array, just with smaller sums in it, and with the bins on
+the far side of the threshold empty. That identical binning is exactly what makes
+parent[b] = left[b] + right[b] true, and hence what makes the subtraction legal at
+all.
+
+Two consequences worth stating. The cost of a node is O(bins x features) no matter
+how few rows it holds, so as the tree deepens the rows shrink but the histogram
+work does not — which is why halving it matters. And a node holding nine rows still
+pays for a 255-bin histogram, which is a second reason min_data_in_leaf exists.
+
+Now the saving, and it is free. A split sends every row of the parent to exactly
+one of the two children, so the two children's histograms add up to the parent's,
+bin by bin. Build the smaller child by scanning its rows, and get the other by
+subtracting it from the parent you already have — no rows touched.
+
+Always scan the smaller side, so at worst you touch half the rows at each level,
+and it compounds down the tree. It is also why the histogram stores sums rather
+than something non-additive like a median: the whole trick rests on Σg over
+disjoint sets adding up.
+:::
+
+## Leaf-wise growth: spend every split where it pays most
+![](img/lgbm_leafwise.png)
+
+::: notes
+Both strategies are handed the same candidate list and the same gain formula. They
+differ only in which node they apply it to next.
+
+Level-wise finishes a level before starting the next, so every node at that depth
+gets split — including one whose best candidate is worth 0.3. The tree stays
+balanced and depth is a meaningful control.
+
+Leaf-wise keeps a queue of leaves and always splits whichever leaf offers the
+largest gain anywhere in the tree. Same four leaves, but the two extra splits went
+where the gain still was: 4.1 rather than 0.3. The tree comes out deep and
+lopsided, so max_depth stops being the natural control — num_leaves is.
+
+Ask before turning the page: if leaf-wise always takes the better split, why is it
+not simply better?
+:::
+
+## GOSS: sample the rows that are already fitted
+![](img/lgbm_goss.png)
+
+::: notes
+The last cost to attack is the number of rows. Plain subsampling throws away rows
+uniformly, which is wasteful in boosting: after a few trees most rows are nearly
+fitted and carry a tiny |g|, and it is the badly-fitted rows that determine where
+the next split should go.
+
+GOSS keeps every row in the top a of |g| — a = 20% here — and takes a random b =
+10% of the rest, so the scan runs on 28% of the rows. The trick is the last step:
+the sampled rows have their g and h multiplied by (1−a)/b = 8, so they stand in for
+the ones left behind. Without that factor the small-gradient region would be
+under-represented and the gain would be biased toward splitting the hard rows apart.
+
+The right panel shows the two gain curves, full data and GOSS, on the same node.
+They sit on top of each other, including the location of the maximum — which is the
+only part that actually matters, since the scan only uses the argmax. Note this is
+sampling per iteration, not once: every tree gets a fresh draw, so a row that is
+skipped now is available later, and its own gradient decides that.
+:::
+
+## Categories: the target statistic problem
+![](img/cat_example.png)
+
+::: notes
+Work this one on the board, it takes two minutes and the rest of the section
+follows from it.
+
+Five customers, one column: their country. A tree cannot split on a string, and
+one-hot on a column with hundreds of countries or cities gives hundreds of nearly
+empty columns. So the natural move is target encoding: replace each country by
+P(Buy = 1 | country). France: two of the three French customers bought, so 2/3.
+Germany: neither bought, so 0.
+
+Now ask what customer 4 has been handed. Its feature is 0.00, and that 0.00 is the
+average of two labels, one of which is customer 4's own Buy. The same for customer
+5. For the French rows the effect is diluted but still there: each contributed a
+third of its own encoding.
+
+State the principle plainly: if you use the target y_i of an observation to encode
+that same observation, you leak the target into the features. The column will look
+excellent in cross-validation and know nothing in production, because the leak
+lives inside the feature and travels with it across any split you make.
+:::
+
+## Leak extreme values
+![](img/cat_leak_why.png)
+
+::: notes
+This is the slide that makes the previous one inevitable rather than anecdotal.
+Take any country with three customers. The encoding they all receive is the average
+of three numbers — and for each of them, one of those three numbers is their OWN
+Buy. Write it as (y_i + y_j + y_k)/3 and put y_i in bold: my own answer is a third
+of my own feature.
+
+Now enumerate, which takes ten seconds. The encoding can only be 0, 1/3, 2/3 or 1,
+because it counts how many of the three bought. If it is 0.00, nobody bought, so I
+did not buy — certainty, not a hint. If it is 1.00, everybody bought, so I did.
+And in between: given the encoding is 1/3, I am one of three customers of whom
+exactly one bought, so my chance of being that one is 1/3.
+
+Read the last two columns together: P(Buy = 1 | encoding) = encoding, exactly.
+The feature is not correlated with the label by accident — it is a direct readout
+of it. Say the general version: with k rows per category, the encoding pins the
+label down to within 1/k, and high-cardinality columns are exactly the ones where k
+is small.
+:::
+
+## Ordered target statistics: use only what came before
+![](img/cat_chain.png)
+
+::: notes
+CatBoost's answer is to impose an order. Shuffle the rows into a random
+permutation — call them A, B, C, D, E — and pretend they arrive one at a time.
+When you encode a row, you may look only at the rows that arrived before it:
+
+  for B, use A;  for C, use A and B;  for D, use A, B and C;  and so on.
+
+A row's own target is therefore never in its own encoding. That is the whole
+innovation, and everything else is bookkeeping.
+
+Walk the table with the same five customers, in the shuffled order. A is the first
+French row, so there is no history at all: it gets the prior p, the base rate 0.4,
+smoothed with weight a = 1. B is French and has seen one earlier French customer
+who did not buy, so (0 + 0.4)/(1 + 1) = 0.20 — and note B itself bought, and that 1
+appears nowhere. C is the first German row: prior again, 0.40, instead of the 0.00
+the naive encoding gave. D has two earlier French rows, one of which bought:
+(1 + 0.4)/(2 + 1) = 0.47.
+
+Three things to point out. The encoding of a country now MOVES down the column as
+evidence accumulates, instead of being one constant per country. Early rows are
+noisy — they lean on the prior — which is the price, and it is why a is a smoothing
+parameter worth tuning. And a fresh permutation is drawn for every tree, so no
+single row is permanently unlucky in being early.
+:::
+
+## Ordered target statistics: removes the correlation
+![](img/cat_ordered_ts.png)
+
+::: notes
+Before reading the panels, agree on how to read ONE BAR, because the chart is a
+conditional probability and that is not a shape people read fluently. Take all the
+rows whose encoded value falls in a given slice of the x axis, and ask what
+fraction of them actually bought. That is the bar's height. Now the key: if the
+feature genuinely knows nothing about a row's own label, then slicing the rows by
+it tells you nothing either, so every bar sits at the base rate, 0.5. A feature
+that leaks makes the bars climb.
+
+All three panels show that same statistic on the same 200-country dataset where
+Buy was a coin flip. Only the encoding changes.
+
+Left: the greedy encoding on the rows it was built from. The bars climb 0, 1/3,
+2/3, 1 — the ramp from two slides ago — and the correlation with y is +0.58 on a
+feature that is provably pure noise.
+
+Middle: the ordered encoding, same rows, same labels. The bars are back on the base
+rate and the correlation is +0.04. Nothing about the data changed; only the rule
+for computing a row's encoding did.
+
+Right, and this is the panel that makes the point: 600 customers the model has
+never seen. Note the title — EITHER encoding. At prediction time both approaches do
+the same thing, encoding a new row from the whole training table, so this panel was
+never broken and is not what we fixed. It is the reference: this is what an honest
+feature looks like.
+
+So say the conclusion in those terms rather than as "the leak is gone": ordered
+target statistics make a TRAINING row behave like a row the model has never seen.
+That is the property the model needs, because during fitting every row is a
+training row, and if training rows flatter the feature the model will trust it and
+then be wrong in production.
+:::
+
+## Oblivious trees: one split per level
+![](img/cat_oblivious.png)
+
+::: notes
+The last difference is the tree shape, and it is the one people notice first
+because it looks wrong. In a CatBoost tree, every node at a given depth tests the
+SAME feature against the SAME threshold. A depth-6 tree therefore has 6 tests
+total, not 63.
+
+That makes prediction trivial: run the 6 comparisons, read the results as 6 bits,
+and that binary number is an index into an array of 64 leaf values. No branching,
+no pointer chasing, identical work for every row — which vectorises, and is why
+CatBoost's inference is unusually fast. If a deployment constraint is latency, this
+is the reason to look at it.
+
+And it is a strong constraint, so it regularizes: far fewer trees fit this shape,
+which is a bias-variance trade paid on purpose. Compare with the previous section
+— LightGBM's leaf-wise growth is the opposite bet, maximum flexibility per leaf.
+Same objective, opposite instincts about what to constrain.
+:::
+
+## XGBoost, LightGBM, CatBoost comparison
+![](img/gbm_compare.png)
+
+::: notes
+The summary slide, and the one worth photographing. Read the header first: the
+objective, the gain and the closed-form leaf value are identical in all three.
+Everything in the table is an engineering answer to "how do we afford that", or a
+different guess about what should be constrained.
+
+One row I have not drawn: LightGBM's EFB, which packs features that are never
+non-zero on the same row into one, cutting the effective feature count in a wide
+sparse matrix. And CatBoost's learned feature combinations, which build new
+categorical features by combining existing ones as the tree grows — the reason it
+often needs no manual interaction engineering.
+
+Practical advice to close the section on. Large tabular data and you care about
+wall-clock: LightGBM, and set num_leaves and min_data_in_leaf. Many
+high-cardinality categoricals, or a small dataset where prediction shift bites, or
+strict inference latency: CatBoost, and let it handle the categorical columns.
+Small data and you want the most forgiving defaults: XGBoost. All three take the
+same hyperparameters conceptually, so the search from section 5–8 transfers
+unchanged — which is the point of having done the maths once.
+:::
+
+# Stacking
 
 ## Learn the combination
 
@@ -944,7 +1276,7 @@ the training data. In sklearn this is the cv=5 argument to StackingClassifier, a
 it is not a detail: it is the entire correctness argument.
 :::
 
-## Get the split right
+## Split correctly
 
 ![](img/cv_schemes.png)
 
@@ -965,9 +1297,9 @@ part of the model, so it belongs inside the outer split. Cost is outer × inner 
 trials, so use it to REPORT performance and a single split to ITERATE quickly.
 :::
 
-# 18. Putting it together
+# Conclusion
 
-## The map
+## Tools map
 
 ![](img/concept_map.png)
 
