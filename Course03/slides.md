@@ -7,6 +7,89 @@ author: "Paul Dubois"
 date: "Week 3 — Lecture"
 ---
 
+## One model before we start: Gaussian naive Bayes
+
+![](img/nb_idea.png)
+
+::: notes
+Five minutes, before the real deck. We keep meeting this model in the zoo and we
+have never actually defined it, and in two weeks it is the example I need for
+calibration — so we pay for it now.
+The idea in one sentence: instead of modelling the boundary, model each class,
+and let Bayes' rule turn that around into a prediction.
+Left: two classes, two features. The shaded ellipses are what the model believes
+each class looks like. Point at them and say the thing that matters: they are
+axis-aligned. Always. The model has no way to express a tilt.
+Right: where those ellipses come from — one 1-D bell per feature per class, fitted
+independently. "Naive" is exactly this: the features are assumed independent
+*given the class*, so the 2-D picture is just the product of the two 1-D pictures.
+:::
+
+## Bayes' rule, feature by feature
+
+![](img/eq_gaussian_nb.png)
+
+::: notes
+Read it right to left. The prior is how common the class is. Each factor is one
+feature's opinion. Multiply, normalise, done — the denominator P(x) is the same
+for every class so we never compute it.
+"Gaussian" is only the choice of what p(x_j | y) looks like: a normal density.
+Swap it for counts and you get multinomial naive Bayes for text; the structure
+above is unchanged.
+The product is the assumption, not a theorem. Everything good and everything bad
+about this model comes out of that single Π.
+:::
+
+## Fitting costs one pass over the data
+
+![](img/nb_fit.png)
+
+::: notes
+Contrast with everything else in today's deck. No loss function, no gradients, no
+iterations, no learning rate to tune — the maximum-likelihood estimates are the
+sample mean and sample variance, so fitting is literally a groupby.
+The table on the right is the whole trained model on the data from two slides
+back: 2d + 1 numbers. This is the extreme low-variance, high-bias corner of the
+tradeoff we are about to define — which is why I want it in the room before we
+start talking about bias and variance.
+Worth saying out loud: this makes it a genuinely useful baseline. It trains in
+milliseconds on data where a gradient-boosted model needs minutes.
+:::
+
+## Predicting: add up the votes
+
+![](img/nb_predict.png)
+
+::: notes
+Take logs and the product becomes a sum, so a prediction is a small sum of
+contributions to the log-odds: the prior, then one term per feature. This is the
+picture to remember.
+Walk the bars: the prior barely moves anything here because the classes are
+balanced; x1 and x2 each push toward class 1 by about the same amount; the total
+goes through the sigmoid to give 0.88.
+Now plant the seed for week 5 — ask them: what happens to that total if I paste a
+copy of x1 into the table as a third feature? The bar gets added twice. Nothing in
+the formula checks whether the evidence is new.
+:::
+
+## The assumption, and where it breaks
+
+![](img/nb_boundary.png)
+
+::: notes
+Left: features really are independent within each class. The bells are the right
+shape, and naive Bayes lands on essentially the same boundary as logistic
+regression. Nothing is lost.
+Right: same class means, but the features are correlated within a class. The model
+is still only allowed axis-aligned bells, so it draws them far too fat in the
+wrong direction, and its boundary is near-vertical where the data clearly separate
+along a diagonal. Logistic regression, which never tried to model the features at
+all, gets it right.
+The lesson that carries forward: correlated features are where this model fails,
+and in a real tabular dataset features are always correlated. Keep it as a
+baseline, and do not trust its probabilities — we will come back to exactly that.
+:::
+
 ## Main question
 > We have a dataset and a fixed computational budget.
 > 
