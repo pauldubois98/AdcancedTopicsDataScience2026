@@ -410,13 +410,10 @@ def fig_double_descent_measured(out: Path) -> None:
     ax0.axhline(best_classical, color=GREEN, ls=":", lw=1.8, zorder=2)
     ax0.scatter([cross], [err[r == cross]], s=70, color=GREEN, zorder=6)
     ax0.set_ylim(0.055, peak * 4)
-    ax0.annotate(f"from p/n \u2248 {cross:.1f} on, every model here\n"
-                 "beats anything the classical regime can reach",
+    ax0.annotate(f"p/n \u2248 {cross:.1f}",
                  (cross, best_classical * 0.9), (8.5, 0.085),
                  fontsize=10.5, color=GREEN, ha="right", va="bottom",
                  arrowprops=dict(arrowstyle="->", color=GREEN, lw=1.4))
-    ax0.text(0.045, best_classical * 1.35, "best error before the threshold",
-             fontsize=10.5, color=GREEN, ha="left", va="bottom")
     ax0.annotate(f"{peak / best_classical:.0f}\u00d7 worse than\neither side of it",
                  (1.0, peak), (0.19, peak * 0.9), fontsize=11.5, color=RED,
                  ha="center", va="top",
@@ -453,7 +450,7 @@ def fig_double_descent_measured(out: Path) -> None:
     fig.text(0.5, -0.045,
              "\u2460  fewer parameters than data points        "
              "\u2461  the interpolation threshold: exactly one exact fit exists     "
-             "   \u2462  many exact fits \u2014 least squares takes the smallest",
+             "\u2462  many exact fits: least squares takes the smallest",
              ha="center", fontsize=11, color=INK)
     fig.text(0.5, -0.115,
              "50 training points, p random ReLU features, least squares with no "
@@ -481,7 +478,7 @@ def fig_dd_ridge(out: Path) -> None:
         ax.plot(r, err, color=colour, lw=lw, ls=ls, label=lab, zorder=4)
     ax.axvspan(r.min(), 1.0, color=FAINT, zorder=0)
     ax.axvline(1.0, color=GREY, ls="--", lw=1.4, zorder=1)
-    ax.text(1.0, 1.055, "interpolation threshold  p = n", transform=ax.transAxes,
+    ax.text(1.0, 1.055, "interpolation threshold at p = n", transform=ax.transAxes,
             ha="right", va="bottom", fontsize=10.5, color=GREY)
     ax.set_xscale("log")
     ax.set_yscale("log")
@@ -492,30 +489,14 @@ def fig_dd_ridge(out: Path) -> None:
 
     peak = curves[0][-1].max()
     ax.set_ylim(0.17, peak * 5)
-    ax.annotate("the spike only exists when\nnothing holds the weights down",
-                (1.0, peak * 1.05), (8.6, peak * 2.6), fontsize=11, color=RED,
-                ha="right", va="top",
-                arrowprops=dict(arrowstyle="->", color=RED, lw=1.4))
-    tuned = curves[-1][-1]
-    ax.annotate("tuned: falls the whole way\n\u2014 no peak at all",
-                (0.8, tuned[np.argmin(np.abs(r - 0.8))] * 0.93), (0.075, 0.36),
-                fontsize=11, color=GREEN, ha="left", va="center",
-                arrowprops=dict(arrowstyle="->", color=GREEN, lw=1.4))
-    ax.annotate("far past the threshold\nall four coincide", (6.0, 0.42),
-                (8.6, 0.182), fontsize=10, color=GREY, ha="right", va="bottom",
-                arrowprops=dict(arrowstyle="->", color=GREY, lw=1.2))
-
+    
     # ------------------------------------------ the same four numbers, side by side
     heights = [c[-1].max() for c in curves]
-    floor = min(c[-1][r < 0.9].min() for c in curves)
     bar.bar(range(4), heights, color=[c[1] for c in curves], width=0.66)
     for i, h in enumerate(heights):
         bar.text(i, h * 1.18, f"{h:.0f}" if h >= 10 else f"{h:.1f}", ha="center",
                  fontsize=11, color=curves[i][1])
-    bar.axhline(floor, color=GREY, ls=":", lw=1.5)
     bar.set_xlim(-0.7, 4.6)
-    bar.text(3.5, floor, "\u2190 the error away\n    from the peak", fontsize=10,
-             color=GREY, ha="left", va="center")
     bar.set_yscale("log")
     bar.set_ylim(0.5, peak * 6)
     bar.set_xticks(range(4))
@@ -524,9 +505,7 @@ def fig_dd_ridge(out: Path) -> None:
     bar.set_ylabel("worst test MSE on the sweep   (log scale)")
     bar.set_title("how tall the spike gets", fontsize=12.5)
 
-    fig.text(0.5, -0.055,
-             "same experiment as the previous slide, same sweep \u2014 the only "
-             "change is a ridge penalty on the weights",
+    fig.text(0.5, -0.055, "The spike only exists when nothing holds the weights down",
              ha="center", fontsize=11, color=GREY)
     save(fig, out, "dd_ridge")
 
@@ -575,8 +554,7 @@ def fig_interpolation(out: Path) -> None:
     axes[1].legend(loc="lower center", frameon=False, fontsize=10.5, ncol=3,
                    handlelength=1.6, columnspacing=1.2)
     fig.text(0.5, -0.03,
-             "identical training loss (zero) — what picks the right curve is the "
-             "optimizer's preference for small, smooth solutions",
+             "identical training loss (zero); what picks the right curve is the optimizer's preference for small, smooth solutions",
              ha="center", fontsize=11.5, color=GREY)
     save(fig, out, "interpolation")
 
@@ -797,14 +775,11 @@ def fig_landscape_1d(out: Path) -> None:
     probe = np.logspace(-5, 2, 22)
     ax.plot(probe, 0.30 + 0.052 * (np.log10(probe) + 1.6) ** 2
             + rng.normal(0, 0.012, len(probe)), "o", color=RED, ms=6,
-            label="what you actually measure (5-fold CV)")
+            label="validation measured (5-fold CV)")
     k = int(np.argmin(loss))
     ax.axvline(lam[k], color=GREY, ls="--", lw=1.2)
     ax.axhspan(loss[k], loss[k] + 0.02, color=GREEN, alpha=0.16)
     ax.set_ylim(bottom=0.14)      # room under the band for the caption
-    ax.text(10 ** -2.5, 0.21, "everything in this band is\n"
-            "indistinguishable from the optimum",
-            fontsize=10.5, color=GREEN, ha="center", va="center")
     ax.set_xscale("log")
     ax.set_xlabel(r"$\lambda$  (log scale)")
     ax.set_ylabel("validation loss")
@@ -1208,7 +1183,7 @@ def fig_optuna_history(out: Path) -> None:
     ax.axvspan(0, 10, color=FAINT)
     ax.text(5, 0.665, "random\nstart-up", ha="center", fontsize=10.5, color=GREY)
     ax.axvspan(70, n, color=GREEN, alpha=0.10)
-    ax.text(95, 0.665, "flat: more budget is not\nbuying anything", ha="center",
+    ax.text(90, 0.665, "flat: more budget is not\nbuying anything", ha="center",
             fontsize=10.5, color=GREEN)
     ax.set_xlabel("trial")
     ax.set_ylabel("validation AUC")
@@ -1246,7 +1221,7 @@ def fig_nested_cv(out: Path) -> None:
     """Outer loop measures, inner loop selects."""
     fig, ax = plt.subplots(figsize=(11.6, 4.2))
     blank(ax)
-    ax.text(0.02, 0.95, "outer loop — estimates performance", fontsize=12, color=INK)
+    ax.text(0.06, 0.95, "outer loop: estimates performance", fontsize=12, color=INK)
     for k in range(4):
         y = 0.80 - k * 0.10
         for j in range(4):
@@ -1257,7 +1232,7 @@ def fig_nested_cv(out: Path) -> None:
                                    edgecolor=GREY, lw=1.0))
         ax.text(0.06 + 4 * 0.115 + 0.02, y, "→  score fold "
                 f"{k + 1}", fontsize=10.5, color=INK, va="center")
-    ax.text(0.06, 0.36, "inner loop — selects λ, using only the grey folds",
+    ax.text(0.06, 0.36, "inner loop: selects hyper-parameters",
             fontsize=12, color=INK)
     for j in range(3):
         x = 0.06 + j * 0.115
@@ -1315,15 +1290,15 @@ def fig_ensemble_avg_demo(out: Path) -> None:
     bx.axhline(t0, color=INK, lw=2.2, ls="--")
     bx.text(1.85, t0 + 0.16, "truth at $x_0$", ha="right", fontsize=11.5, color=INK)
     bx.scatter(0.55 + jitter, preds, s=46, color=GREY, zorder=3)
-    bx.text(0.55, -1.75, "one dot\n= one model", ha="center", fontsize=11.5,
+    bx.text(0.55, -1.75, "each dot is a model", ha="center", fontsize=11.5,
             color=GREY)
     bx.scatter([1.45], [preds.mean()], s=170, color=GREEN, marker="D", zorder=4)
-    bx.text(1.45, preds.mean() - 0.55, "their\naverage", ha="center", fontsize=11.5,
+    bx.text(1.45, preds.mean() - 0.75, "average", ha="center", fontsize=11.5,
             color=GREEN)
     # the spread of the individual models, as a bracket on the left
     bx.annotate("", xy=(0.12, preds.min()), xytext=(0.12, preds.max()),
                 arrowprops=dict(arrowstyle="<->", color=BLUE, lw=1.6))
-    bx.text(0.02, t0 + 0.95, "spread\n$\\sigma$", fontsize=12, color=BLUE,
+    bx.text(0.02, t0 + 1, "spread\n$\\sigma$", fontsize=12, color=BLUE,
             va="center", ha="center")
     bx.set_title("at that one input", fontsize=12.5)
     bx.set_xlim(-0.25, 1.9)
@@ -1362,9 +1337,8 @@ def fig_ensemble_correlation(out: Path) -> None:
         m = err.mean()
         ax.plot([m, m], [-2.6, M - 1], color=colour, lw=1.2, ls=":", zorder=1)
         ax.scatter([m], [-2.6], s=190, color=colour, marker="D", zorder=4)
-        ax.text(0.0, M + 0.5, "no error", ha="center", fontsize=11, color=INK)
-        ax.text(0.0, -5.4, f"error of the average:  {m:+.2f}", ha="center",
-                fontsize=12.5, color=colour)
+        ax.text(0.0, -7.5, f"error of the average:  {m:+.2f}", ha="center",
+                fontsize=12.5, color=colour, backgroundcolor='#FFFFFF')
         ax.set_title(title, fontsize=13)
         ax.set_xlim(-3.2, 3.2)
         ax.set_ylim(-6.6, M + 1.8)
@@ -1372,7 +1346,7 @@ def fig_ensemble_correlation(out: Path) -> None:
         ax.set_yticks([])
         for sp in ax.spines.values():
             sp.set_visible(False)
-    axes[0].text(-3.1, M / 2, "one row\n= one model's\nerror", fontsize=11,
+    axes[0].text(-5, M / 2, "one row represents\none model's error", fontsize=11,
                  color=GREY, va="center", ha="left")
     save(fig, out, "ensemble_correlation")
 
@@ -1617,8 +1591,8 @@ def fig_stacking(out: Path) -> None:
     box(ax, (0.79, 0.55), 0.17, 0.16, "meta-learner\n$g(f_1,\\ldots,f_4)$", ec=RED, fs=12)
     arrow(ax, (0.875, 0.55), (0.95, 0.55), color=GREY)
     ax.text(0.965, 0.55, r"$\hat y$", fontsize=13, va="center")
-    ax.text(0.5, 0.06, "the gain comes from errors that DIFFER — "
-            r"different families lower $\rho$ far more than different seeds",
+    ax.text(0.5, 0, "The gain comes from errors that DIFFER.\n"
+            r"Using different families lower $\rho$ far more than using different seeds.",
             ha="center", fontsize=11.5, color=GREY, style="italic")
     save(fig, out, "stacking")
 
@@ -1629,7 +1603,7 @@ def fig_oof(out: Path) -> None:
     for ax, ok in zip(axes, (False, True)):
         blank(ax)
         colour = GREEN if ok else RED
-        ax.text(0.5, 0.95, "CORRECT — out-of-fold" if ok else "WRONG — in-fold",
+        ax.text(0.5, 0.95, "CORRECT: out-of-fold" if ok else "WRONG: in-fold",
                 ha="center", fontsize=13.5, color=colour)
         for k in range(3):
             y = 0.74 - k * 0.19
@@ -1665,9 +1639,9 @@ def fig_cv_schemes(out: Path) -> None:
     x0, step, w = 0.095, 0.0378, 0.034
 
     schemes = (
-        ("K-fold — random rows", np.tile(np.arange(4), 6), None),
-        ("Group K-fold — whole patients", np.repeat(np.arange(4), 6), patient),
-        ("Time-series split — the past only", np.repeat(np.arange(4), 6), None),
+        ("K-fold: random rows", np.tile(np.arange(4), 6), None),
+        ("Group K-fold: whole patients", np.repeat(np.arange(4), 6), patient),
+        ("Time-series split: the past only", np.repeat(np.arange(4), 6), None),
     )
     test_fold = 2
     for ax, (title, folds, group) in zip(axes, schemes):
@@ -1692,8 +1666,7 @@ def fig_cv_schemes(out: Path) -> None:
             # above the boxes, not on them
             ax.text(x0 + 20.5 * step, 0.68, "future: unused", fontsize=10,
                     color=GREY, ha="center", va="center")
-    fig.text(0.5, -0.02, "red = the held-out fold.  "
-             "Same patient in train and test ⇒ you are measuring memorization.",
+    fig.text(0.5, -0.02, "red are the held-out folds",
              ha="center", fontsize=11.5, color=GREY)
     save(fig, out, "cv_schemes")
 
@@ -1937,8 +1910,8 @@ def fig_eq_xgboost(out: Path) -> None:
 
     Written out rather than routed through `equation`: the point of the slide is
     that each term is a thing you can point at, so the callouts have to be
-    anchored to the exact summand they name. The closed-form leaf weight that
-    follows from this objective is its own slide, `eq_leaf_weight`.
+    anchored to the exact summand they name. What this objective collapses to
+    for a single leaf is the next slide, `eq_leaf_objective`.
     """
     fig = plt.figure(figsize=(12.0, 12.0 / SLIDE_ASPECT))
     fig.canvas.draw()
@@ -2023,73 +1996,75 @@ def fig_eq_xgboost(out: Path) -> None:
     plt.close(fig)
 
 
-def fig_eq_leaf_weight(out: Path) -> None:
-    r"""What the objective gives back once you minimise it over a single leaf.
+def fig_eq_leaf_objective(out: Path) -> None:
+    """From the whole objective to one leaf's quadratic, in three moves.
 
-    The fraction is assembled by hand — lead, numerator, rule, denominator —
-    rather than written as one `\dfrac`, so the callouts can point at the
-    numerator and the denominator separately instead of at the middle of a blob.
+    Written as stacked figure text rather than through `equation` because the
+    point is the sequence: each line is one manipulation, with the reason for it
+    beside it, and the last line is the one the rest of the section uses.
+
+    The legend is not decoration: h_i and h(x_i) are different objects sharing a
+    letter, and every year somebody reads the second-order term as the tree
+    squared. Naming all three symbols before the derivation is what stops that.
     """
-    fig = plt.figure(figsize=(12.0, 12.0 / SLIDE_ASPECT))
-    fig.canvas.draw()
-    r = fig.canvas.get_renderer()
-    figw = fig.get_size_inches()[0] * fig.dpi
+    fig = plt.figure(figsize=(12.6, 12.6 / SLIDE_ASPECT))
 
-    fig.text(0.5, 0.90, "minimise that objective over one leaf, and the best "
-                        "value for the leaf is closed-form",
-             fontsize=14.5, ha="center", va="center", color=INK)
-
-    fs = 27
-    lead = fig.text(0.0, 0.0, r"$w_j^{\star}\;=\;-$", fontsize=fs, va="center")
-    num = fig.text(0.0, 0.0, r"$\sum_{i\in I_j} g_i$", fontsize=fs, ha="center",
-                   va="center", color=BLUE)
-    den = fig.text(0.0, 0.0, r"$\sum_{i\in I_j} h_i\;+\;\lambda$", fontsize=fs,
-                   ha="center", va="center", color=PURPLE)
-    fig.canvas.draw()
-    wl, wn, wd = (t.get_window_extent(r).width / figw for t in (lead, num, den))
-
-    y_bar, x_left = 0.58, 0.09
-    frac_w = max(wn, wd) * 1.12
-    lead.set_position((x_left, y_bar))
-    x_frac = x_left + wl + 0.02 + frac_w / 2
-    num.set_position((x_frac, y_bar + 0.11))
-    den.set_position((x_frac, y_bar - 0.12))
-    fig.add_artist(plt.Line2D([x_frac - frac_w / 2, x_frac + frac_w / 2],
-                              [y_bar, y_bar], color=INK, lw=2.0,
+    # ---------------------------------------------------------- what the symbols are
+    legend = ((0.17, BLUE, r"$g_i$",
+               "one number per row:\n" r"the slope $\partial\ell/\partial F$ at row $i$"),
+              (0.50, PURPLE, r"$h_i$",
+               "one number per row:\n" r"the curvature $\partial^2\ell/\partial F^2$"),
+              (0.83, AMBER, r"$h(x_i)$",
+               "the new tree evaluated at row $i$"))
+    for x, col, sym, gloss in legend:
+        fig.text(x, 0.955, sym, fontsize=19, color=col, ha="center", va="center")
+        fig.text(x, 0.875, gloss, fontsize=11, color=INK, ha="center",
+                 va="center", linespacing=1.45)
+    fig.text(0.5, 0.795,
+             r"careful: $h_i$ carries a SUBSCRIPT and is a number; "
+             r"$h(x_i)$ carries an ARGUMENT and is the tree",
+             fontsize=11.5, color=RED, ha="center", va="center")
+    fig.add_artist(plt.Line2D([0.06, 0.94], [0.755, 0.755], color=FAINT, lw=1.6,
                               transform=fig.transFigure))
 
-    # the callouts sit to the right of the fraction and point at the near edge of
-    # the line they name, so neither arrow crosses the other half of the fraction
-    x_edge = x_frac + frac_w / 2
-    for txt, col, y_line, y_txt in (
-            ("the total pull of this leaf's rows:\nhow far, and which way,\n"
-             "they want the prediction moved", BLUE, y_bar + 0.11, 0.79),
-            ("how much evidence backs that pull,\n"
-             r"plus $\lambda$ — a thin leaf is dominated" "\n"
-             r"by $\lambda$ and gets shrunk toward 0", PURPLE, y_bar - 0.12, 0.29)):
-        fig.text(0.72, y_txt, txt, fontsize=13.5, color=col, ha="center",
-                 va="center", linespacing=1.55)
-        fig.add_artist(FancyArrowPatch(
-            (0.60, y_txt + (-0.10 if y_txt > 0.5 else 0.10)),
-            (x_edge + 0.015, y_line), transform=fig.transFigure,
-            arrowstyle="-|>", mutation_scale=12, color=col, lw=1.5,
-            shrinkA=2, shrinkB=4,
-            connectionstyle="arc3,rad=" + ("0.2" if y_txt > 0.5 else "-0.2")))
+    # ------------------------------------------------------------- the three moves
+    steps = (
+        (0.715, "the objective for the tree we are adding",
+         r"$\mathcal{L}^{(m)}=\sum_i \ell\left(y_i,\,F_{m-1}(x_i)+h(x_i)\right)"
+         r"\;+\;\gamma T\;+\;\frac{1}{2}\lambda\sum_j w_j^2$", INK),
+        (0.520, "expand to 2nd order in the new tree, and drop "
+                r"$\ell(y_i,F_{m-1})$ (constant)",
+         r"$\simeq\;\sum_i\left[\,g_i\,h(x_i)+\frac{1}{2}h_i\,h(x_i)^2\right]"
+         r"\;+\;\gamma T\;+\;\frac{1}{2}\lambda\sum_j w_j^2$", INK),
+        (0.325, "a tree is constant on each leaf: $h(x_i)=w_j$ for every row "
+                r"$i\in I_j$, so add the rows up leaf by leaf",
+         r"$=\;\sum_{j=1}^{T}\left[\,G_j\,w_j+\frac{1}{2}"
+         r"\left(H_j+\lambda\right)w_j^{2}\,\right]\;+\;\gamma T$"
+         r"       with $G_j=\sum_{i\in I_j} g_i$, $H_j=\sum_{i\in I_j} h_i$",
+         BLUE),
+    )
+    for y, why, maths, col in steps:
+        fig.text(0.5, y, why, fontsize=11.5, color=GREY, ha="center", va="center")
+        fig.text(0.5, y - 0.075, maths, fontsize=15, color=col, ha="center",
+                 va="center")
 
-    fig.text(0.5, 0.06,
-             r"$I_j$ = the rows that land in leaf $j$;   "
-             r"$g_i,\,h_i$ = 1st and 2nd derivative of $\ell$ at row $i$",
-             fontsize=13.5, ha="center", va="center", color=GREY)
+    # -------------------------------------------------------------- the payoff
+    fig.patches.append(FancyBboxPatch(
+        (0.13, 0.02), 0.74, 0.135, boxstyle="round,pad=0.012,rounding_size=0.02",
+        facecolor="white", edgecolor=GREEN, linewidth=2.0,
+        transform=fig.transFigure))
+    fig.text(0.5, 0.125, "every leaf sits in its own term, so the sum splits into "
+                         r"$T$ independent problems:",
+             fontsize=12, color=GREEN, ha="center", va="center")
+    fig.text(0.5, 0.062, r"$\mathrm{obj}_j(w)\;=\;G_j\,w\;+\;\frac{1}{2}"
+                         r"\left(H_j+\lambda\right)w^{2}$"
+                         "        one quadratic, one unknown",
+             fontsize=15, color=INK, ha="center", va="center")
 
     with matplotlib.rc_context({"savefig.bbox": "standard"}):
-        fig.savefig(out / "eq_leaf_weight.png")
+        fig.savefig(out / "eq_leaf_objective.png")
     plt.close(fig)
 
-
-# ----------------------------------------------------- XGBoost, term by term
-# Five figures for the five things the objective is actually made of. The deck
-# already shows the formula; these are what each symbol MEANS on one row, one
-# leaf, one split, so the parameter names land on something concrete.
 
 def _logloss_curve(F):
     """Log loss of a positive row as a function of its predicted log-odds."""
@@ -2134,7 +2109,7 @@ def fig_xgb_gh(out: Path) -> None:
     rows = ((r"squared  $\frac{1}{2}(y_i-F)^2$", r"$F-y_i$", r"$1$",
              "the plain residual"),
             (r"log loss", r"$p_i-y_i$", r"$p_i(1-p_i)$",
-             r"$p_i=\sigma(F)$; small when confident"))
+             r"$p_i=\sigma(F)$"))
     for x, head, col in zip(cols, heads, (INK, BLUE, PURPLE)):
         ax.text(x, 0.86, head, fontsize=13, color=col, ha="center", va="center")
     ax.plot([0.02, 0.98], [0.78, 0.78], color=GREY, lw=1.2)
@@ -2146,8 +2121,7 @@ def fig_xgb_gh(out: Path) -> None:
         ax.text(cols[0], y - 0.115, note, fontsize=11, color=GREY,
                 ha="center", va="center")
     ax.text(0.5, 0.05,
-            "one $g$ and one $h$ per row, recomputed before every tree —\n"
-            "after that the tree never looks at $y$ again",
+            "one $g$ and one $h$ per row are recomputed once for each tree",
             fontsize=12, color=GREY, ha="center", va="center", linespacing=1.5)
     save(fig, out, "xgb_gh")
 
@@ -2207,7 +2181,7 @@ def fig_xgb_leaf_predict(out: Path) -> None:
     ax.text(cols[3], 0.10, r"$\vdots$", fontsize=14, ha="center", va="center")
     ax.text(0.5, 0.02,
             r"$F_M(x)=F_0+\eta\sum_{m}w^{\star}_{\mathrm{leaf}_m(x)}$"
-            "     — for classification, $\\sigma(F_M)$ at the very end",
+            "\nfor classification, add $\\sigma(F_M)$ at the very end",
             fontsize=12.5, color=INK, ha="center", va="center")
     save(fig, out, "xgb_leaf_predict")
 
@@ -2232,9 +2206,7 @@ def fig_xgb_leaf_score(out: Path) -> None:
     arrow(ax, (0.32, 0.68), (0.355, 0.68), color=GREY)
     arrow(ax, (0.65, 0.68), (0.685, 0.68), color=GREY)
 
-    ax.text(0.5, 0.44, r"so call  $s(G,H)=\dfrac{G^2}{H+\lambda}$  the "
-                       "score of a set of rows — the lower the objective, "
-                       "the higher the score",
+    ax.text(0.5, 0.44, r"$s(G,H)=\dfrac{G^2}{H+\lambda}$ is the score of a set of rows",
             fontsize=13, color=INK, ha="center", va="center")
     box(ax, (0.5, 0.23), 0.92, 0.20,
         r"gain $=\frac{1}{2}\left[\,s(G_L,H_L)+s(G_R,H_R)-s(G,H)\,\right]"
@@ -2245,6 +2217,36 @@ def fig_xgb_leaf_score(out: Path) -> None:
             fontsize=12, color=GREY, ha="center", va="center", linespacing=1.5)
     save(fig, out, "xgb_leaf_score")
 
+LAM, GAM = 1.0, 0.5          # the lambda and gamma used by the split figures
+
+
+def _split_demo():
+    """The 40-row toy node the split figures share, so the slides link up.
+
+    Log loss at the very first tree: every prediction is 0.5, so g is +-0.5 and
+    h is 0.25 for every row, and only feature 0 carries signal.
+    """
+    rng = np.random.default_rng(4)
+    n = 40
+    X = rng.uniform(0, 1, (n, 3))
+    y = (X[:, 0] > 0.55).astype(float)
+    flip = rng.choice(n, 5, replace=False)          # a little label noise
+    y[flip] = 1 - y[flip]
+    return X, y, 0.5 - y, np.full(n, 0.25)
+
+
+def _gain_at(xs, gs, hs, cuts, lam=LAM, gam=GAM):
+    """Gain of `xs < cut` for each cut — the formula from the XGBoost slides."""
+    G, H = gs.sum(), hs.sum()
+    s = lambda a, b: a ** 2 / (b + lam)
+    out = []
+    for c in cuts:
+        m = xs < c
+        GL, HL = gs[m].sum(), hs[m].sum()
+        out.append(0.5 * (s(GL, HL) + s(G - GL, H - HL) - s(G, H)) - gam)
+    return np.array(out)
+
+
 def fig_xgb_split_search(out: Path) -> None:
     """Where candidate splits come from, and how one of them is chosen.
 
@@ -2253,14 +2255,10 @@ def fig_xgb_split_search(out: Path) -> None:
     point of the figure is that nothing here is clever — it is an exhaustive scan
     scored by one formula.
     """
-    rng = np.random.default_rng(4)
-    n, lam, gam = 40, 1.0, 0.5
-    X = rng.uniform(0, 1, (n, 3))
-    y = (X[:, 0] > 0.55).astype(float)
-    flip = rng.choice(n, 5, replace=False)          # a little label noise
-    y[flip] = 1 - y[flip]
-    g, h = 0.5 - y, np.full(n, 0.25)          # first tree, base probability 0.5
+    X, y, g, h = _split_demo()
+    n, lam, gam = len(y), LAM, GAM
     G, H = g.sum(), h.sum()
+    rng = np.random.default_rng(11)           # vertical jitter of the row strip
 
     def scan(col):
         """Every midpoint of this feature, with the gain it would buy."""
@@ -2323,6 +2321,954 @@ def fig_xgb_split_search(out: Path) -> None:
 
 
 
+
+# --------------------------------------------------------------- 14. LightGBM
+# Same objective, same gain, same leaf value as the XGBoost slides — these four
+# figures are only about what LightGBM does to make the scan cheap enough to run
+# on far more rows, so each one is drawn against the exact-scan baseline.
+
+def _bin_demo(n_bins=8):
+    """The shared node, binned: edges, per-row bin index, and the bin totals."""
+    X, y, g, h = _split_demo()
+    xs = X[:, 0]
+    edges = np.linspace(0, 1, n_bins + 1)
+    idx = np.clip(np.digitize(xs, edges) - 1, 0, n_bins - 1)
+    return xs, y, g, h, edges, idx
+
+
+def _bin_bars(ax, edges, idx, g, rows=None, colour_by_sign=True, colour=None):
+    """Draw the sum-of-g histogram LightGBM stores, one bar per bin."""
+    n_bins = len(edges) - 1
+    rows = np.ones(len(idx), bool) if rows is None else rows
+    for b in range(n_bins):
+        m = (idx == b) & rows
+        c = (edges[b] + edges[b + 1]) / 2
+        tot = g[m].sum()
+        col = colour if colour else (BLUE if tot < 0 else RED)
+        ax.bar(c, tot, width=(edges[1] - edges[0]) * 0.82, color=col, alpha=0.8)
+    for e_ in edges:
+        ax.axvline(e_, color=FAINT, lw=1.3, zorder=0)
+    ax.axhline(0, color=INK, lw=1.0)
+    ax.set_xlim(0, 1)
+    ax.spines["left"].set_visible(False)
+
+
+def fig_lgbm_bins(out: Path) -> None:
+    """Step 1 of histogram split finding: bin the feature, once, up front."""
+    xs, y, g, h, edges, idx = _bin_demo()
+    n_bins = len(edges) - 1
+
+    fig, axd = plt.subplot_mosaic([["strip", "store"], ["hist", "store"]],
+                                  figsize=WIDE, height_ratios=[1.0, 1.9],
+                                  width_ratios=[1.6, 1.0])
+
+    ax = axd["strip"]
+    rng = np.random.default_rng(11)
+    ax.scatter(xs, rng.uniform(-0.4, 0.4, xs.size), s=30,
+               color=[BLUE if v else RED for v in (y == 1)], zorder=3)
+    for e_ in edges:
+        ax.axvline(e_, color=FAINT, lw=1.3)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(-0.85, 0.85)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+    ax.set_title(f"the same 40 rows, sorted once and cut into {n_bins} bins",
+                 fontsize=13)
+
+    ax = axd["hist"]
+    _bin_bars(ax, edges, idx, g)
+    for b in range(n_bins):
+        m = idx == b
+        c = (edges[b] + edges[b + 1]) / 2
+        ax.text(c, 0.25 if g[m].sum() < 0 else -0.25, f"n={m.sum()}",
+                fontsize=10, color=GREY, ha="center", va="center")
+    ax.set_xlabel("feature value")
+    ax.set_ylabel(r"$\sum g$ in the bin")
+    ax.set_title("one pass over the rows fills the histogram", fontsize=13)
+
+    ax = axd["store"]
+    blank(ax)
+    ax.set_title("keep per bin what the scan will need:", fontsize=13)
+    cols = (0.14, 0.42, 0.66, 0.88)
+    for x, head in zip(cols, ("bin", r"$\sum g$", r"$\sum h$", r"$n$")):
+        ax.text(x, 0.73, head, fontsize=12.5, color=INK, ha="center")
+    ax.plot([0.04, 0.96], [0.68, 0.68], color=GREY, lw=1.1)
+    for k, b in enumerate((0, 1, 2)):
+        m = idx == b
+        yy = 0.57 - 0.10 * k
+        for x, v in zip(cols, (f"{b}", f"{g[m].sum():+.2f}",
+                               f"{h[m].sum():.2f}", f"{m.sum()}")):
+            ax.text(x, yy, v, fontsize=12, ha="center", va="center",
+                    color=INK if x == cols[0] else GREY)
+    ax.text(0.5, 0.24, r"$\vdots$", fontsize=14, ha="center")
+    save(fig, out, "lgbm_bins")
+
+
+def fig_lgbm_prefix(out: Path) -> None:
+    """Why a histogram is enough: both running totals, and the gain they feed.
+
+    Everything on this figure is computed from the same 40-row node the rest of
+    the section uses, so the +6.05 at the bottom is literally the peak of the
+    binned scan on the next slide.
+    """
+    xs, y, g, h, edges, idx = _bin_demo()
+    n_bins = len(edges) - 1
+    gb = np.array([g[idx == b].sum() for b in range(n_bins)])
+    hb = np.array([h[idx == b].sum() for b in range(n_bins)])
+    cg, ch = np.cumsum(gb), np.cumsum(hb)
+    k = 4                                        # the cut the scan picks
+    GL, HL, G, H = cg[k], ch[k], gb.sum(), hb.sum()
+    GR, HR = G - GL, H - HL
+    s = lambda a, b: a ** 2 / (b + LAM)
+    sL, sR, sN = s(GL, HL), s(GR, HR), s(G, H)
+    gain = 0.5 * (sL + sR - sN) - GAM
+
+    fig, ax = plt.subplots(figsize=(12.6, 5.2))
+    blank(ax)
+    cx = np.linspace(0.245, 0.94, n_bins)
+    w = 0.072
+
+    rows = ((0.90, r"$\sum g$", gb, "{:+.1f}", INK, False),
+            (0.79, r"$\sum h$", hb, "{:.2f}", INK, False),
+            (0.64, r"$\sum g$", cg, "{:+.1f}", BLUE, True),
+            (0.53, r"$\sum h$", ch, "{:.2f}", PURPLE, True))
+    for ypos, label, vals, fmt, col, cumulative in rows:
+        ax.text(0, ypos, label, fontsize=11.5, color=col, ha="right",
+                va="center")
+        for b, x in enumerate(cx):
+            on = cumulative and b == k
+            box(ax, (x, ypos), w, 0.085, fmt.format(vals[b]),
+                ec=GREEN if on else (GREY if cumulative else col),
+                fs=10.5, lw=2.4 if on else 1.3)
+    for b, x in enumerate(cx):
+        ax.text(x, 0.96, f"{b}", fontsize=9.5, color=GREY, ha="center")
+    ax.text(0.233, 0.96, "bin", fontsize=9.5, color=GREY, ha="right")
+
+    # the cut: everything left of it is the left child
+    xcut = (cx[k] + cx[k + 1]) / 2
+    ax.plot([xcut, xcut], [0.46, 0.99], color=GREEN, lw=2.2, zorder=5)
+    ax.text(xcut, 0.435, "cut here", fontsize=11, color=GREEN, ha="center",
+            va="top")
+
+    ax.text(0.32, 0.36, rf"$G_L={GL:+.1f}$,  $H_L={HL:.2f}$", fontsize=13,
+            color=GREEN, ha="center", va="center")
+    ax.text(0.75, 0.36, rf"$G_R=G-G_L={GR:+.1f}$,  $H_R=H-H_L={HR:.2f}$",
+            fontsize=13, color=GREEN, ha="center", va="center")
+    ax.text(0.5, 0.27, rf"whole node:  $G={G:+.1f}$,  $H={H:.2f}$   "
+                       rf"(the last cell of each running row)",
+            fontsize=11.5, color=GREY, ha="center", va="center")
+
+    ax.plot([0.03, 0.97], [0.215, 0.215], color=FAINT, lw=1.4)
+    ax.text(0.5, 0.145,
+            r"gain $=\frac{1}{2}\left[\,s(G_L,H_L)+s(G_R,H_R)-s(G,H)\,\right]"
+            rf"-\gamma$,      $s(G,H)=\frac{{G^2}}{{H+\lambda}}$,  "
+            rf"$\lambda={LAM:g}$, $\gamma={GAM:g}$",
+            fontsize=12.5, color=INK, ha="center", va="center")
+    ax.text(0.5, 0.065,
+            rf"$=\frac{{1}}{{2}}\left[\frac{{{GL:.1f}^2}}{{{HL:.2f}+1}}"
+            rf"+\frac{{({GR:.1f})^2}}{{{HR:.2f}+1}}"
+            rf"-\frac{{{G:.1f}^2}}{{{H:.1f}+1}}\right]-{GAM:g}"
+            rf"=\frac{{1}}{{2}}\left[{sL:.2f}+{sR:.2f}-{sN:.2f}\right]-{GAM:g}"
+            rf"={gain:+.2f}$",
+            fontsize=13.5, color=INK, ha="center", va="center")
+    ax.set_title("one sweep fills both running rows; every candidate is one "
+                 "column of them", fontsize=13)
+    save(fig, out, "lgbm_prefix")
+
+
+def fig_lgbm_binned_scan(out: Path) -> None:
+    """Step 2: the scan now walks bin edges, and lands next door to the exact one."""
+    xs, y, g, h, edges, idx = _bin_demo()
+    inner = edges[1:-1]
+    srt = np.sort(xs)
+    mids = (srt[:-1] + srt[1:]) / 2
+    gain_exact, gain_bin = _gain_at(xs, g, h, mids), _gain_at(xs, g, h, inner)
+    best_exact = mids[int(np.argmax(gain_exact))]
+    best_bin = inner[int(np.argmax(gain_bin))]
+
+    fig, ax = plt.subplots(figsize=(12.6, 5.0))
+    ax.step(mids, gain_exact, where="mid", color=GREY, lw=1.9,
+            label=f"exact scan: {mids.size} candidates, one per midpoint")
+    ax.step(inner, gain_bin, where="mid", color=GREEN, lw=2.8,
+            label=f"binned scan: {inner.size} candidates, one per bin edge")
+    ax.plot(inner, gain_bin, "o", color=GREEN, ms=7, zorder=4)
+    # the two winners are one bin apart, so the labels lean away from each other
+    for x_, col, lab, ha, dx in (
+            (best_exact, GREY, f"exact winner  {best_exact:.2f}", "right", -0.012),
+            (best_bin, GREEN, f"{best_bin:.2f}  binned winner", "left", 0.012)):
+        ax.axvline(x_, color=col, lw=1.4, ls=":")
+        ax.text(x_ + dx, -1.9, lab, fontsize=12, color=col, ha=ha, va="top")
+    ax.axhline(0, color=INK, lw=1.0)
+    ax.set_xlabel("threshold")
+    ax.set_ylabel("gain")
+    ax.set_ylim(-3.0, gain_exact.max() * 1.18)
+    ax.legend(frameon=False, fontsize=12, loc="upper left")
+    ax.set_title("The exact winner is not on the grid, so the scan returns the edge beside it\n"
+                 "Example drawn with 8 bins; at LightGBM's 255 the gap is invisible",
+                 fontsize=13)
+    save(fig, out, "lgbm_binned_scan")
+
+
+def fig_lgbm_subtract(out: Path) -> None:
+    """Step 3: the free half of the work — one child comes from a subtraction."""
+    xs, y, g, h, edges, idx = _bin_demo()
+    cut = edges[5]                                   # the split chosen above
+    right = xs >= cut
+
+    fig, axes = plt.subplots(1, 3, figsize=(12.6, 4.6), sharey=True)
+    panels = ((np.ones_like(right), "the parent's histogram\nchose this split", GREY),
+              (right, "right child", BLUE),
+              (~right, "left child", GREEN))
+    for ax, (rows, title, col) in zip(axes, panels):
+        _bin_bars(ax, edges, idx, g, rows=rows.astype(bool), colour=col)
+        ax.axvline(cut, color=INK, lw=1.6, ls="--")
+        ax.set_title(title, fontsize=12.5, color=col, linespacing=1.5)
+        ax.set_xlabel("feature value")
+    axes[0].set_ylabel(r"$\sum g$ per bin")
+    for ax, sym in zip(axes[:2], ("$-$", "$=$")):
+        ax.text(1.07, 0.5, sym, transform=ax.transAxes, fontsize=26,
+                color=INK, ha="center", va="center")
+    save(fig, out, "lgbm_subtract")
+
+
+def fig_lgbm_leafwise(out: Path) -> None:
+    """Level-wise vs leaf-wise: same candidates, same gain, different next node."""
+    fig, axes = plt.subplots(1, 2, figsize=(12.6, 5.0))
+
+    def draw(ax, nodes, edges, leaves, title, caption):
+        blank(ax)
+        for u, v, gain in edges:
+            # a split worth almost nothing is drawn in red, not green
+            colour = GREY if not gain else (GREEN if gain > 1 else RED)
+            ax.plot(*zip(nodes[u], nodes[v]), color=colour, lw=2.4, zorder=1)
+            if gain:
+                ax.text((nodes[u][0] + nodes[v][0]) / 2 - 0.055,
+                        (nodes[u][1] + nodes[v][1]) / 2, f"{gain}",
+                        fontsize=12.5, color=colour, ha="center", va="center",
+                        bbox=dict(boxstyle="round,pad=0.15", fc="white",
+                                  ec="none"))
+        for k, xy in nodes.items():
+            ax.plot(*xy, "o", ms=15, mfc="white", zorder=3,
+                    mec=BLUE if k in leaves else GREY, mew=1.9)
+        ax.set_title(title, fontsize=13.5)
+        ax.set_xlabel(caption, fontsize=12, linespacing=1.6, color=INK)
+
+    draw(axes[0],
+         {"r": (0.50, 0.90), "a": (0.26, 0.58), "b": (0.74, 0.58),
+          "l1": (0.10, 0.26), "l2": (0.40, 0.26),
+          "l3": (0.60, 0.26), "l4": (0.90, 0.26)},
+         (("r", "a", 4.8), ("r", "b", None), ("a", "l1", 2.1),
+          ("a", "l2", None), ("b", "l3", 0.3), ("b", "l4", None)),
+         {"l1", "l2", "l3", "l4"},
+         "level-wise  (XGBoost default)",
+         "finishes a level before starting the next")
+
+    draw(axes[1],
+         {"r": (0.50, 0.90), "a": (0.26, 0.58), "b": (0.80, 0.58),
+          "c": (0.08, 0.26), "d": (0.44, 0.26),
+          "e": (0.28, -0.06), "f": (0.62, -0.06)},
+         (("r", "a", 4.8), ("r", "b", None), ("a", "c", 4.1),
+          ("a", "d", None), ("d", "e", 2.2), ("d", "f", None)),
+         {"b", "c", "e", "f"},
+         "leaf-wise / best-first  (LightGBM)",
+         "keeps a queue of leaves and always splits the one\n"
+         "offering the most, anywhere in the tree")
+    for ax in axes:
+        ax.set_ylim(-0.22, 1.02)
+    save(fig, out, "lgbm_leafwise")
+
+
+def fig_lgbm_goss(out: Path) -> None:
+    """GOSS: keep the big gradients, subsample the rest, reweight, same gain."""
+    rng = np.random.default_rng(7)
+    n = 2000
+    x = rng.uniform(0, 1, n)
+    y = np.sin(2 * np.pi * x) + rng.normal(0, 0.35, n)
+    g, h = -y, np.ones(n)                     # squared loss, F = 0 so far
+    a, b = 0.2, 0.1                           # top_rate, other_rate
+
+    order = np.argsort(-np.abs(g))
+    n_top = int(a * n)
+    top, rest = order[:n_top], order[n_top:]
+    samp = rng.choice(rest, int(b * rest.size), replace=False)
+    keep = np.concatenate([top, samp])
+    w = np.concatenate([np.ones(n_top), np.full(samp.size, (1 - a) / b)])
+
+    fig, axes = plt.subplots(1, 2, figsize=WIDE)
+
+    ax = axes[0]
+    mag = np.abs(g)[order]
+    ax.fill_between(np.arange(n_top), mag[:n_top], color=GREEN, alpha=0.30)
+    ax.fill_between(np.arange(n_top, n), mag[n_top:], color=FAINT)
+    ax.plot(np.arange(n), mag, color=GREY, lw=1.2)
+    ax.axvline(n_top, color=INK, lw=1.2, ls=":")
+    ax.text(n_top * 0.5, mag.max() * 0.30, f"keep all\ntop {a:.0%}", fontsize=12,
+            color=GREEN, ha="center", va="center", linespacing=1.5)
+    ax.text(n * 0.62, mag.max() * 0.62,
+            f"sample {b:.0%} of the rest,\n"
+            rf"and scale their $g,h$ by {int((1 - a) / b)}$",
+            fontsize=12, color=GREY, ha="center", va="center", linespacing=1.5)
+    ax.set_xlabel("rows, sorted by how badly they are still fitted")
+    ax.set_ylabel(r"$|g_i|$")
+    ax.set_title(f"Use {keep.size} rows instead of {n}", fontsize=13)
+
+    ax = axes[1]
+    cuts = np.linspace(0.03, 0.97, 60)
+    ax.plot(cuts, _gain_at(x, g, h, cuts), color=GREY, lw=3.0,
+            label="gain on all 2000 rows")
+    ax.plot(cuts, _gain_at(x[keep], g[keep] * w, h[keep] * w, cuts),
+            color=GREEN, lw=2.0, ls="--",
+            label=f"gain on the {keep.size} GOSS rows")
+    ax.set_xlabel("threshold")
+    ax.set_ylabel("gain")
+    ax.legend(frameon=False, fontsize=11.5, loc="lower center")
+    ax.set_title("the reweighting is what keeps the two curves together",
+                 fontsize=13)
+    save(fig, out, "lgbm_goss")
+
+
+# -------------------------------------------------------------- 15. CatBoost
+# The categorical story, measured: a category that carries no signal at all, so
+# anything the encoded feature seems to know about y is leakage and nothing else.
+
+def _cat_demo(n=600, levels=200, seed=5):
+    """High-cardinality category, independent of the label — pure noise by design."""
+    rng = np.random.default_rng(seed)
+    cat = np.repeat(np.arange(levels), n // levels)
+    rng.shuffle(cat)
+    y = rng.integers(0, 2, n).astype(float)
+    cat_te = rng.integers(0, levels, n)
+    y_te = rng.integers(0, 2, n).astype(float)
+    return cat, y, cat_te, y_te
+
+
+def _greedy_ts(cat, y, levels=200):
+    """Mean target per category, computed on all rows — the row's own y included."""
+    tot = np.bincount(cat, weights=y, minlength=levels)
+    cnt = np.bincount(cat, minlength=levels)
+    return np.where(cnt > 0, tot / np.maximum(cnt, 1), y.mean())
+
+
+def _ordered_ts(cat, y, a=1.0, levels=200, seed=0):
+    """CatBoost's ordered target statistic: only the rows before this one count."""
+    rng = np.random.default_rng(seed)
+    order = rng.permutation(len(y))
+    prior = y.mean()
+    tot = np.zeros(levels)
+    cnt = np.zeros(levels)
+    enc = np.empty(len(y))
+    for i in order:                      # one pass in permutation order
+        c = cat[i]
+        enc[i] = (tot[c] + a * prior) / (cnt[c] + a)
+        tot[c] += y[i]                   # the row joins the history only after
+        cnt[c] += 1
+    return enc, order
+
+
+def _enc_rate(ax, enc, y, title, note=None, colour=BLUE, counts=True,
+              base_label=True):
+    """Share of positives at each level of the encoded feature.
+
+    A histogram of the encoded value hides the leak; what a tree would actually
+    exploit is P(y=1 | encoding), so plot that. Flat at the base rate = the
+    feature knows nothing.
+    """
+    edges = np.linspace(0, 1, 6)
+    idx = np.clip(np.digitize(enc, edges) - 1, 0, len(edges) - 2)
+    for b in range(len(edges) - 1):
+        m = idx == b
+        if not m.any():
+            continue
+        # the bar sits at the mean encoding in the bin, not the bin centre, so
+        # it can be compared with the diagonal it is supposed to lie on
+        c = enc[m].mean()
+        ax.bar(c, y[m].mean(), width=0.13, color=colour, alpha=0.8)
+        if counts:
+            ax.text(c, y[m].mean() + 0.03, f"n={m.sum()}", fontsize=10,
+                    color=GREY, ha="center")
+        elif y[m].mean() == 0:      # a zero-height bar reads as a missing one
+            ax.text(c, 0.02, "0%", fontsize=10, color=colour, ha="center")
+    ax.axhline(y.mean(), color=INK, lw=1.4, ls="--")
+    if base_label:
+        ax.text(-0.06, y.mean() + 0.03, "base rate", fontsize=11, color=INK,
+                ha="left")
+    ax.set_xlim(-0.09, 1.09)
+    ax.set_ylim(0, 1.15)
+    ax.set_xlabel("value of the encoded feature")
+    ax.set_ylabel(r"share of $y=1$ among those rows")
+    ax.set_title(title, fontsize=13)
+    if note:
+        ax.text(0.03, 0.97, note, transform=ax.transAxes, fontsize=12,
+                ha="left", va="top", color=INK, linespacing=1.5)
+
+
+# the five-row worked example the CatBoost slides open on: small enough that the
+# leak can be computed in your head, and reused by the ordered-permutation slide
+FIVE_ROWS = ((1, "France", 1), (2, "France", 1), (3, "France", 0),
+             (4, "Germany", 0), (5, "Germany", 0))
+FIVE_COLOUR = {"France": BLUE, "Germany": PURPLE}
+FIVE_PRIOR = sum(r[2] for r in FIVE_ROWS) / len(FIVE_ROWS)      # 0.4
+
+
+def fig_cat_example(out: Path) -> None:
+    """Target encoding on five rows: every row's own answer is inside its feature."""
+    naive = {"France": 2 / 3, "Germany": 0.0}
+
+    fig, axes = plt.subplots(1, 2, figsize=WIDE,
+                             gridspec_kw={"width_ratios": [1.1, 1.0]})
+
+    ax = axes[0]
+    blank(ax)
+    ax.set_title("five customers, one categorical column", fontsize=13)
+    cols = (0.14, 0.42, 0.66, 0.90)
+    for x, head in zip(cols, ("Customer", "Country", "Buy",
+                              "target\nencoding")):
+        ax.text(x, 0.86, head, fontsize=12, color=GREY, ha="center",
+                va="center", linespacing=1.4)
+    ax.plot([0.03, 0.99], [0.76, 0.76], color=GREY, lw=1.1)
+    for k, (cid, country, buy) in enumerate(FIVE_ROWS):
+        y = 0.66 - 0.125 * k
+        leaks = country == "Germany"
+        ax.text(cols[0], y, f"{cid}", fontsize=12.5, ha="center", color=INK)
+        ax.text(cols[1], y, country, fontsize=12.5, ha="center",
+                color=FIVE_COLOUR[country])
+        ax.text(cols[2], y, f"{buy}", fontsize=12.5, ha="center",
+                color=BLUE if buy else RED)
+        ax.text(cols[3], y, f"{naive[country]:.2f}", fontsize=12.5, ha="center",
+                color=RED if leaks else INK,
+                bbox=dict(boxstyle="round,pad=0.18", ec="none",
+                          fc="#fdecec" if leaks else "white"))
+    ax.text(0.5, 0.03, "each row's own Buy is one of the values averaged into "
+                       "its own encoding",
+            fontsize=12, color=RED, ha="center", va="center")
+
+    ax = axes[1]
+    blank(ax)
+    ax.set_title("the naive calculation", fontsize=13)
+    ax.text(0.5, 0.84, r"$P(\mathrm{Buy}=1\mid\mathrm{France})=\dfrac{2}{3}$",
+            fontsize=18, ha="center", va="center", color=BLUE)
+    ax.text(0.5, 0.60, r"$P(\mathrm{Buy}=1\mid\mathrm{Germany})=\dfrac{0}{2}=0$",
+            fontsize=18, ha="center", va="center", color=PURPLE)
+    ax.plot([0.06, 0.94], [0.46, 0.46], color=FAINT, lw=1.4)
+    ax.text(0.5, 0.34,
+            "both German customers are handed 0.00\n"
+            "which is exactly, their answer",
+            fontsize=13, color=RED, ha="center", va="center", linespacing=1.5)
+    save(fig, out, "cat_example")
+
+
+def fig_cat_chain(out: Path) -> None:
+    """The ordered permutation: encode each row from the prefix that precedes it."""
+    # one random ordering of the five customers, walked left to right
+    order = (3, 1, 4, 2, 5)
+    by_id = {cid: (country, buy) for cid, country, buy in FIVE_ROWS}
+
+    fig, axd = plt.subplot_mosaic([["chain"], ["table"]], figsize=(12.6, 5.4),
+                                  height_ratios=[1.0, 1.5])
+
+    ax = axd["chain"]
+    blank(ax)
+    ax.set_title("draw a random ordering, then walk it", fontsize=13)
+    xs = np.linspace(0.10, 0.90, 5)
+    for k, (x, cid) in enumerate(zip(xs, order)):
+        country, buy = by_id[cid]
+        box(ax, (x, 0.66), 0.115, 0.34, "ABCDE"[k], ec=FIVE_COLOUR[country],
+            fs=15)
+        ax.text(x, 0.32, f"customer {cid}\n{country}, Buy={buy}", fontsize=10.5,
+                color=GREY, ha="center", va="center", linespacing=1.4)
+        if k < 4:
+            arrow(ax, (x + 0.062, 0.66), (xs[k + 1] - 0.062, 0.66), color=GREY)
+    # the bracket sits under A-C, where there is room, rather than over the title
+    ax.plot([xs[0] - 0.05, xs[2] + 0.05], [0.10, 0.10], color=GREEN, lw=1.8)
+    for x_ in (xs[0] - 0.05, xs[2] + 0.05):
+        ax.plot([x_, x_], [0.10, 0.14], color=GREEN, lw=1.8)
+    ax.annotate("these three, and only these, are what D is encoded from",
+                (xs[3], 0.14), ((xs[0] + xs[2]) / 2, -0.02), fontsize=12,
+                color=GREEN, ha="center", va="center",
+                arrowprops=dict(arrowstyle="-|>", color=GREEN, lw=1.5))
+
+    ax = axd["table"]
+    blank(ax)
+    cols = (0.07, 0.20, 0.34, 0.46, 0.68, 0.88)
+    heads = ("", "customer", "country", "Buy",
+             "earlier rows of the same country",
+             "encoding")
+    for x, head in zip(cols, heads):
+        ax.text(x, 0.90, head, fontsize=11.5, color=GREY, ha="center")
+    ax.plot([0.02, 0.98], [0.81, 0.81], color=GREY, lw=1.1)
+    seen = {}
+    for k, cid in enumerate(order):
+        country, buy = by_id[cid]
+        hist = seen.get(country, [])
+        val = (sum(hist) + FIVE_PRIOR) / (len(hist) + 1)
+        y = 0.70 - 0.15 * k
+        ax.text(cols[0], y, "ABCDE"[k], fontsize=12.5, ha="center",
+                color=FIVE_COLOUR[country])
+        ax.text(cols[1], y, f"{cid}", fontsize=12, ha="center", color=INK)
+        ax.text(cols[2], y, country, fontsize=12, ha="center",
+                color=FIVE_COLOUR[country])
+        ax.text(cols[3], y, f"{buy}", fontsize=12, ha="center",
+                color=BLUE if buy else RED)
+        ax.text(cols[4], y, "none yet — use the prior" if not hist else
+                "Buy = " + ", ".join(str(v) for v in hist),
+                fontsize=11.5, ha="center", color=GREY)
+        num = f"{sum(hist)} + {FIVE_PRIOR:g}"
+        den = f"{len(hist)} + 1"
+        ax.text(cols[5], y, rf"$\frac{{{num}}}{{{den}}}={val:.2f}$",
+                fontsize=13, ha="center", color=GREEN)
+        seen.setdefault(country, []).append(buy)
+    ax.text(0.5, -0.05,
+            r"prior $p=0.4$ (the base rate), weight $a=1$, and the row's own Buy is never in its own numerator",
+            fontsize=12, color=INK, ha="center", va="center")
+    save(fig, out, "cat_chain")
+
+
+def fig_cat_leak_why(out: Path) -> None:
+    """Why the ramp is arithmetic, not luck: your own label is one of the three."""
+    fig, axes = plt.subplots(1, 2, figsize=WIDE,
+                             gridspec_kw={"width_ratios": [0.95, 1.25]})
+
+    ax = axes[0]
+    blank(ax)
+    ax.set_title("one country with three customers", fontsize=13)
+    ys = (1, 0, 1)
+    for k, buy in enumerate(ys):
+        y = 0.80 - 0.13 * k
+        ax.text(0.14, y, f"customer {k + 1}", fontsize=12, color=GREY,
+                ha="left", va="center")
+        ax.text(0.66, y, f"Buy = {buy}", fontsize=12.5, va="center",
+                color=BLUE if buy else RED)
+    ax.plot([0.10, 0.90], [0.46, 0.46], color=GREY, lw=1.2)
+    ax.text(0.5, 0.34, r"encoding $=\dfrac{1+0+1}{3}=\dfrac{2}{3}$", fontsize=17,
+            ha="center", va="center")
+    ax.text(0.5, 0.13,
+            "all three are given 0.67\n" \
+            "each of them contributed to the average",
+            fontsize=12, color=INK, ha="center", va="center", linespacing=1.5)
+
+    ax = axes[1]
+    blank(ax)
+    ax.set_title("the encoding tells you about your own Buy", fontsize=13)
+    ax.text(0.5, 0.93, r"encoding $=\dfrac{\mathbf{y_i}+y_j+y_k}{3}$"
+                       "     with $y_i$ = MY OWN Buy",
+            fontsize=13, ha="center", va="center", color=INK)
+    cols = (0.11, 0.37, 0.62, 0.88)
+    heads = ("encoding", "how many of\nthe 3 bought", "so my own\nBuy",
+             r"$P(\mathrm{Buy}{=}1)$")
+    for x, head in zip(cols, heads):
+        ax.text(x, 0.72, head, fontsize=11, color=GREY, ha="center",
+                va="center", linespacing=1.4)
+    ax.plot([0.02, 0.98], [0.60, 0.60], color=GREY, lw=1.1)
+    rows = ((0.0, 0, "must be 0", RED),
+            (1 / 3, 1, "0 or 1", GREY),
+            (2 / 3, 2, "0 or 1", GREY),
+            (1.0, 3, "must be 1", BLUE))
+    for k, (enc, m, verdict, col) in enumerate(rows):
+        y = 0.50 - 0.115 * k
+        ax.text(cols[0], y, f"{enc:.2f}", fontsize=12.5, ha="center", color=INK)
+        ax.text(cols[1], y, f"{m}", fontsize=12, ha="center", color=GREY)
+        ax.text(cols[2], y, verdict, fontsize=12, ha="center", color=col)
+        ax.text(cols[3], y, f"{m / 3:.2f}", fontsize=12.5, ha="center",
+                color=GREEN)
+    ax.text(0.5, 0.03,
+            "When the last two columns are the same number\n"
+            r"$P(\mathrm{Buy}=1\mid \mathrm{encoding})=\mathrm{encoding}$,"
+            "\nthe feature is a readout of the label it was built from",
+            fontsize=12, color=INK, ha="center", va="center", linespacing=1.5)
+    save(fig, out, "cat_leak_why")
+
+
+def fig_cat_leak(out: Path) -> None:
+    """The predicted ramp, measured — and gone the moment the rows are new."""
+    cat, y, cat_te, y_te = _cat_demo()
+    enc_map = _greedy_ts(cat, y)
+
+    fig, axes = plt.subplots(1, 2, figsize=WIDE, sharey=True)
+    _enc_rate(axes[0], enc_map[cat], y, "on the 600 rows it was computed from",
+              "every bar lands on the diagonal:\nthe arithmetic was not a guess",
+              RED)
+    _enc_rate(axes[1], enc_map[cat_te], y_te, "on 600 rows it has never seen",
+              "flat at the base rate:\nthe feature knows nothing", GREY)
+    # the identity line is what the previous slide predicts, so draw it
+    axes[0].plot([0, 1], [0, 1], color=INK, lw=1.6, ls=":", zorder=1)
+    axes[0].text(0.31, 0.44, r"$P=$ encoding", fontsize=11.5, color=INK,
+                 rotation=30, ha="center")
+    fig.suptitle("200 countries, 3 customers each, and Buy decided by a coin "
+                 "flip — there is nothing here to learn",
+                 fontsize=13.5, y=1.02)
+    save(fig, out, "cat_leak")
+
+
+def fig_cat_ordered_ts(out: Path) -> None:
+    """What "the leak is gone" means: a training row now looks like a fresh row.
+
+    Three panels of the SAME statistic, so the only thing that varies is how the
+    encoding was computed. The third panel is the target, not a result: at
+    prediction time both approaches encode a new row from the whole training
+    table, so that panel is what a leak-free feature has always looked like.
+    """
+    cat, y, cat_te, y_te = _cat_demo()
+    greedy_map = _greedy_ts(cat, y)
+    ordered, _ = _ordered_ts(cat, y)
+
+    fig, axes = plt.subplots(1, 3, figsize=(12.6, 4.9), sharey=True)
+    panels = (
+        (axes[0], greedy_map[cat], y, RED,
+         "GREEDY encoding,\non the training rows",
+         "each row helped build\nits own encoding"),
+        (axes[1], ordered, y, GREEN,
+         "ORDERED encoding,\non the same training rows",
+         "no row is in its own\nencoding any more"),
+        (axes[2], greedy_map[cat_te], y_te, GREY,
+         "either encoding,\non fresh rows",
+         "new rows"),
+    )
+    for ax, enc, yy, col, title, note in panels:
+        _enc_rate(ax, enc, yy, "", colour=col, counts=False,
+                  base_label=ax is axes[0])
+        ax.set_title(title, fontsize=12.5, color=col, linespacing=1.5)
+        r = np.corrcoef(enc, yy)[0, 1]
+        ax.text(0.5, 1.05, rf"corr(encoding, $y$) $= {r:+.2f}$", fontsize=12.5,
+                color=col, ha="center", va="center")
+        ax.text(0.5, 0.90, note, fontsize=11, color=INK, ha="center",
+                va="center", linespacing=1.45)
+        ax.set_xlabel("value of the encoded feature", fontsize=11)
+    axes[1].set_ylabel("")
+    axes[2].set_ylabel("")
+
+    fig.suptitle("read one bar: of the rows whose encoding lands there, what "
+                 "share actually bought?\n"
+                 "a feature that knows nothing about a row keeps every bar on "
+                 "the base rate",
+                 fontsize=13, y=1.14, linespacing=1.5)
+    fig.text(0.5, -0.06,
+             "the fix makes a TRAINING row look like the fresh row",
+             fontsize=12.5, color=INK, ha="center", va="top")
+    save(fig, out, "cat_ordered_ts")
+
+
+def _shift_demo(depth=8, n=300, seed=3):
+    """Residual of every row, measured with and without that row in the fit.
+
+    A true leave-one-out refit, not cross-validation: the claim is about ONE row
+    being inside the fit, so the demonstration should remove exactly one row.
+    """
+    from sklearn.tree import DecisionTreeRegressor
+
+    rng = np.random.default_rng(seed)
+    x = rng.uniform(0, 1, (n, 1))
+    y = np.sin(2 * np.pi * x[:, 0]) + rng.normal(0, 0.35, n)
+    mk = lambda: DecisionTreeRegressor(max_depth=depth, random_state=0)
+    fitted = mk().fit(x, y).predict(x)
+    left_out = np.empty(n)
+    for i in range(n):
+        m = np.ones(n, bool)
+        m[i] = False
+        left_out[i] = mk().fit(x[m], y[m]).predict(x[i:i + 1])[0]
+    return y, fitted, left_out
+
+
+def fig_cat_shift(out: Path) -> None:
+    """One row first, then all of them: the residual you measure is too small."""
+    y, fitted, left_out = _shift_demo()
+    r_in, r_out = np.abs(y - fitted), np.abs(y - left_out)
+    ratio = r_out / np.maximum(r_in, 1e-9)
+    i = int(np.argmin(np.abs(ratio - r_out.mean() / r_in.mean())))   # typical row
+
+    fig, axes = plt.subplots(1, 2, figsize=WIDE,
+                             gridspec_kw={"width_ratios": [1.15, 1.0]})
+
+    ax = axes[0]
+    blank(ax)
+    ax.set_title("one row, and the two models that could score it", fontsize=13)
+    ax.text(0.5, 0.90, rf"row $i$:   its true value is $y_i={y[i]:+.2f}$",
+            fontsize=13, ha="center", va="center", color=INK)
+    panels = ((0.25, RED, "the model was fitted\nWITH row $i$",
+               fitted[i], y[i] - fitted[i]),
+              (0.77, GREEN, "the model never\nSAW row $i$",
+               left_out[i], y[i] - left_out[i]))
+    for x0, col, label, pred, res in panels:
+        ax.text(x0, 0.72, label, fontsize=12, color=col, ha="center",
+                va="center", linespacing=1.5)
+        box(ax, (x0, 0.50), 0.38, 0.20,
+            rf"predicts ${pred:+.2f}$" "\n" rf"residual $= {res:+.2f}$",
+            ec=col, fs=12.5)
+    ax.text(0.51, 0.50, "vs", fontsize=12.5, color=GREY, ha="center",
+            va="center")
+    ax.text(0.5, 0.27,
+            rf"the same row asks for a correction {ratio[i]:.1f}$\times$ larger"
+            "\nonce the model has not already memorised it",
+            fontsize=12.5, color=INK, ha="center", va="center", linespacing=1.5)
+    ax.text(0.5, 0.06, "and boosting fits the next tree to exactly that number",
+            fontsize=12, color=GREY, ha="center", va="center")
+
+    ax = axes[1]
+    bins = np.linspace(0, 1.2, 30)
+    ax.hist(r_in, bins=bins, color=RED, alpha=0.65,
+            label=f"fitted with the row   (mean {r_in.mean():.2f})")
+    ax.hist(r_out, bins=bins, color=GREEN, alpha=0.55,
+            label=f"row left out            (mean {r_out.mean():.2f})")
+    ax.axvline(r_in.mean(), color=RED, lw=2.0, ls="--")
+    ax.axvline(r_out.mean(), color=GREEN, lw=2.0, ls="--")
+    ax.set_xlabel(r"$|$residual$|$")
+    ax.set_ylabel("rows")
+    ax.legend(frameon=False, fontsize=11)
+    ax.set_title(f"all {len(y)} rows: every one is biased the same way\n"
+                 f"({100 * (1 - r_in.mean() / r_out.mean()):.0f}% too small "
+                 "on average)", fontsize=12.5)
+    save(fig, out, "cat_shift")
+
+
+def fig_cat_shift_why(out: Path) -> None:
+    """Why a smaller gradient is a problem at all: the shrink is not uniform.
+
+    The obvious objection to the previous slide is that a uniformly smaller
+    gradient is just a smaller learning rate. So measure the shrink separately
+    for rows the tree has memorised and rows it has not: it is 100% in leaves
+    holding one row and 22% in well-populated ones, which is a distortion of the
+    residual SHAPE that no learning rate can undo.
+    """
+    from sklearn.tree import DecisionTreeRegressor
+
+    y, fitted, left_out = _shift_demo()
+    rng = np.random.default_rng(3)
+    x = rng.uniform(0, 1, (len(y), 1))          # same draw as _shift_demo
+    tree = DecisionTreeRegressor(max_depth=8, random_state=0).fit(x, y)
+    leaf = tree.apply(x)
+    size = np.array([np.sum(leaf == l) for l in leaf])
+    r_in, r_out = np.abs(y - fitted), np.abs(y - left_out)
+
+    fig, axes = plt.subplots(1, 2, figsize=WIDE,
+                             gridspec_kw={"width_ratios": [1.0, 1.15]})
+
+    ax = axes[0]
+    blank(ax)
+    ax.set_title("first, the objection", fontsize=13)
+    box(ax, (0.5, 0.80), 0.96, 0.24,
+        "if every gradient were simply 56% smaller,\n"
+        r"that would be harmless — it is a smaller $\eta$,"
+        "\nand $\\eta$ is already a parameter we set", ec=GREY, fs=12.5)
+    arrow(ax, (0.5, 0.66), (0.5, 0.57), color=GREY)
+    box(ax, (0.5, 0.44), 0.96, 0.22,
+        "but the shrink is NOT uniform:\nit is largest exactly where the model "
+        "memorised", ec=RED, fs=12.5)
+    arrow(ax, (0.5, 0.32), (0.5, 0.23), color=GREY)
+    ax.text(0.5, 0.11,
+            "so the next tree is fitted to a residual surface\n"
+            "with the wrong SHAPE, not merely the wrong scale —\n"
+            r"and no value of $\eta$ can undo a wrong direction",
+            fontsize=12.5, color=INK, ha="center", va="center", linespacing=1.55)
+
+    ax = axes[1]
+    buckets = ((1, 1, "alone in\nits leaf"), (2, 2, "2 rows"),
+               (3, 4, "3-4 rows"), (5, 10 ** 6, "5+ rows"))
+    xs = np.arange(len(buckets))
+    rep = [r_in[(size >= lo) & (size <= hi)].mean() for lo, hi, _ in buckets]
+    hon = [r_out[(size >= lo) & (size <= hi)].mean() for lo, hi, _ in buckets]
+    ax.bar(xs - 0.19, rep, width=0.36, color=RED, alpha=0.8,
+           label="what the row reports")
+    ax.bar(xs + 0.19, hon, width=0.36, color=GREEN, alpha=0.8,
+           label="what it is really wrong by")
+    for k, (r, h) in enumerate(zip(rep, hon)):
+        ax.text(k - 0.19, r + 0.012, f"{r:.2f}", fontsize=10.5, color=RED,
+                ha="center")
+        ax.text(k + 0.19, h + 0.012, f"{h:.2f}", fontsize=10.5, color=GREEN,
+                ha="center")
+    ax.set_xticks(xs)
+    ax.set_xticklabels([b[2] for b in buckets], fontsize=11)
+    ax.set_xlabel("how many training rows share this row's leaf")
+    ax.set_ylabel(r"mean $|$residual$|$")
+    ax.set_ylim(0, max(hon) * 1.45)
+    ax.legend(frameon=False, fontsize=11.5, loc="upper right")
+    ax.set_title("the green bars are flat; the red ones collapse where the "
+                 "model memorised —\na row alone in its leaf reports 0.00 and "
+                 "is wrong by 0.43", fontsize=12.5, linespacing=1.5)
+    save(fig, out, "cat_shift_why")
+
+
+def fig_cat_ordered_boosting(out: Path) -> None:
+    """What ordered boosting IS: a prefix model per position in a permutation."""
+    n = 8
+    fig, ax = plt.subplots(figsize=(12.6, 5.2))
+    blank(ax)
+    ax.set_title("shuffle the rows once, then never let a row's own gradient "
+                 "come from a model that has seen it", fontsize=13.5)
+
+    cx = np.linspace(0.360, 0.958, n)
+    w = 0.062
+
+    ax.text(0.288, 0.86, "the permutation", fontsize=12, color=INK,
+            ha="right", va="center")
+    for k, x in enumerate(cx):
+        box(ax, (x, 0.86), w, 0.10, f"{k + 1}", ec=GREY, fs=11)
+    ax.text(0.65, 0.755,
+            "green = the model was trained on these rows        "
+            "red = the row being scored, never trained on",
+            fontsize=11, color=GREY, ha="center", va="center")
+
+    for r, i in enumerate((2, 4, 6, 8)):
+        yy = 0.66 - 0.155 * r
+        ax.text(0.288, yy, rf"row {i}:  use $M_{{{i - 1}}}$",
+                fontsize=12, color=INK, ha="right", va="center")
+        for k, x in enumerate(cx):
+            if k < i - 1:                        # the prefix it was trained on
+                box(ax, (x, yy), w, 0.10, "", fc="#e8f5e9", ec=GREEN, fs=10)
+            elif k == i - 1:                     # the row being scored
+                box(ax, (x, yy), w, 0.10, "?", ec=RED, fs=12, lw=2.2)
+            else:
+                box(ax, (x, yy), w, 0.10, "", ec=FAINT, fs=10, lw=1.0)
+    ax.text(0.65, 0.02,
+            r"$M_{i-1}$ is fitted on the first $i-1$ rows only, so "
+            r"$g_i=\partial\ell\left(y_i,\,M_{i-1}(x_i)\right)$ is "
+            "out-of-sample by construction",
+            fontsize=12.5, color=INK, ha="center", va="center")
+    save(fig, out, "cat_ordered_boosting")
+
+
+def fig_cat_ordered_cost(out: Path) -> None:
+    """Why n models per round is not what CatBoost actually runs."""
+    fig, axes = plt.subplots(1, 2, figsize=WIDE)
+
+    ax = axes[0]
+    blank(ax)
+    ax.set_title("the literal version is unaffordable", fontsize=13, color=RED)
+    for k in range(5):
+        box(ax, (0.11 + 0.15 * k, 0.68), 0.105, 0.16,
+            rf"$M_{{{k}}}$", ec=RED, fs=12)
+    ax.text(0.79, 0.68, r"$\cdots$", fontsize=17, color=RED, ha="center",
+            va="center")
+    box(ax, (0.92, 0.68), 0.125, 0.16, r"$M_{n-1}$", ec=RED, fs=12)
+    ax.text(0.5, 0.47, r"one model per position, refitted every round:",
+            fontsize=12.5, color=INK, ha="center", va="center")
+    ax.text(0.5, 0.34, r"$O(n^2)$  trees per boosting round", fontsize=16,
+            color=RED, ha="center", va="center")
+    ax.text(0.5, 0.14, "correct, and nobody could run it",
+            fontsize=12, color=GREY, ha="center", va="center")
+
+    ax = axes[1]
+    blank(ax)
+    ax.set_title("what CatBoost keeps instead", fontsize=13, color=GREEN)
+    spans = ((0, 1, "$M_0$", "1 row"), (1, 2, "$M_1$", "2 rows"),
+             (2, 4, "$M_2$", "4 rows"), (3, 8, "$M_3$", "8 rows"))
+    for k, (r, size, name, sub) in enumerate(spans):
+        x0 = 0.10 + 0.23 * k
+        box(ax, (x0, 0.72), 0.17, 0.17, name, ec=GREEN, fs=13)
+        ax.text(x0, 0.55, f"first {sub}", fontsize=10.5, color=GREY,
+                ha="center", va="center")
+    ax.text(0.5, 0.40,
+            r"a row at position $i$ takes its gradient from "
+            r"$M_{\lfloor \log_2 i\rfloor}$," "\n"
+            r"whose prefix stops before $i$ — so still out-of-sample",
+            fontsize=12, color=INK, ha="center", va="center", linespacing=1.5)
+    ax.text(0.5, 0.20, r"$\log_2 n$  models instead of  $n$", fontsize=16,
+            color=GREEN, ha="center", va="center")
+    ax.text(0.5, 0.04,
+            "same permutations as the categorical statistics, and several of "
+            "them,\nrotated between rounds so no row is permanently early",
+            fontsize=11.5, color=GREY, ha="center", va="center", linespacing=1.5)
+    save(fig, out, "cat_ordered_cost")
+
+
+def fig_cat_oblivious(out: Path) -> None:
+    """Symmetric trees: one split per level turns the tree into a lookup table."""
+    fig, axes = plt.subplots(1, 2, figsize=WIDE,
+                             gridspec_kw={"width_ratios": [1.0, 1.15]})
+
+    ax = axes[0]
+    blank(ax)
+    ax.set_title("every node of a level uses the SAME split", fontsize=13)
+    xs = {0: [0.5], 1: [0.26, 0.74], 2: [0.09, 0.38, 0.62, 0.91]}
+    ys = {0: 0.88, 1: 0.62, 2: 0.36}
+    for lvl in (0, 1):
+        for x in xs[lvl]:
+            for child in (0, 1):
+                nxt = xs[lvl + 1][xs[lvl].index(x) * 2 + child]
+                ax.plot([x, nxt], [ys[lvl], ys[lvl + 1]], color=GREY, lw=1.7,
+                        zorder=1)
+    for lvl in (0, 1, 2):
+        for x in xs[lvl]:
+            ax.plot(x, ys[lvl], "o", ms=13, mfc="white", mec=GREY, mew=1.7,
+                    zorder=3)
+    for lvl, test, col in ((0, r"$x_3<0.4$ ?", BLUE), (1, r"$x_7<2$ ?", PURPLE)):
+        ax.text(0.01, ys[lvl] - 0.13, test, fontsize=12.5, color=col,
+                va="center")
+    ax.text(0.30, ys[0] - 0.06, "no  0", fontsize=10.5, color=GREY, ha="right")
+    ax.text(0.70, ys[0] - 0.06, "1  yes", fontsize=10.5, color=GREY, ha="left")
+    vals = ("+0.4", "-1.2", "+0.9", "-0.1")
+    for k, x in enumerate(xs[2]):
+        box(ax, (x, 0.20), 0.155, 0.13, f"[{k}]\n{vals[k]}", ec=GREEN, fs=10.5)
+    ax.text(0.5, 0.03, "four leaf values stored as one array of four numbers",
+            fontsize=11.5, color=GREEN, ha="center", va="center")
+
+    ax = axes[1]
+    blank(ax)
+    ax.set_title("two customers, two lookups", fontsize=13)
+    people = (("row A", "$x_3=0.2$", "yes $\\to 1$", "$x_7=5$", "no $\\to 0$",
+               "$(1,0)_2=2$", "+0.9", 0.72),
+              ("row B", "$x_3=0.9$", "no $\\to 0$", "$x_7=1$", "yes $\\to 1$",
+               "$(0,1)_2=1$", "-1.2", 0.34))
+    for name, t1, b1, t2, b2, idx, val, y0 in people:
+        ax.text(0.02, y0, name, fontsize=12.5, color=INK, va="center")
+        ax.text(0.17, y0 + 0.06, t1, fontsize=11.5, color=BLUE, va="center")
+        ax.text(0.17, y0 - 0.06, t2, fontsize=11.5, color=PURPLE, va="center")
+        ax.text(0.36, y0 + 0.06, b1, fontsize=11.5, color=BLUE, va="center")
+        ax.text(0.36, y0 - 0.06, b2, fontsize=11.5, color=PURPLE, va="center")
+        arrow(ax, (0.53, y0), (0.60, y0), color=GREY)
+        ax.text(0.72, y0, idx, fontsize=12.5, color=INK, va="center",
+                ha="center")
+        arrow(ax, (0.82, y0), (0.88, y0), color=GREY)
+        ax.text(0.95, y0, val, fontsize=13, color=GREEN, va="center",
+                ha="center")
+    ax.text(0.5, 0.14,
+            "two comparisons with no branching\nthis is why CatBoost predicts so fast",
+            fontsize=11.5, color=INK, ha="center", va="center", linespacing=1.5)
+    save(fig, out, "cat_oblivious")
+
+
+def fig_gbm_compare(out: Path) -> None:
+    """The three libraries side by side, once the shared maths is set aside."""
+    fig, ax = plt.subplots(figsize=WIDE)
+    blank(ax)
+    ax.set_title("same objective, same gain, same leaf value — everything below "
+                 "is a different answer to \"how do we afford it\"", fontsize=13)
+
+    cols = (0.025, 0.27, 0.53, 0.78)
+    for x, name, col in ((cols[1], "XGBoost", BLUE), (cols[2], "LightGBM", GREEN),
+                         (cols[3], "CatBoost", PURPLE)):
+        ax.text(x, 0.90, name, fontsize=14, color=col, ha="left")
+    ax.plot([0.01, 0.99], [0.85, 0.85], color=GREY, lw=1.2)
+
+    rows = (
+        ("finding a split", "every midpoint,\nor sketched quantiles",
+         "~255 bins, filled\nin one pass", "bins"),
+         ("growing the tree", "level-wise,\ndepth-limited",
+          "leaf-wise,\n$\\mathtt{num\\_leaves}$-limited",
+          "oblivious: ONE split\nper level"),
+          ("which rows", "all", "GOSS",
+           "a permutation\nof the row"),
+           ("categoricals", "to encode yourself",
+            "greedy\ntarget statistics",
+            "ordered\ntarget statistics"),
+            # ("the residual $g_i$", "from a model fitted\non row $i$ too",
+            #  "model fitted on row $i$", "from a model that\nnever saw row $i$"),
+            ("what it is best at", "small data, forgiving\ndefaults",
+             "large tabular data,\nspeed",
+             "many categoricals,\nfast inference")
+    )
+    for k, (label, a, b_, c) in enumerate(rows):
+        y = 0.745 - 0.132 * k
+        ax.text(cols[0], y, label, fontsize=12, color=INK, va="center")
+        for x, txt, col in ((cols[1], a, BLUE), (cols[2], b_, GREEN),
+                            (cols[3], c, PURPLE)):
+            ax.text(x, y, txt, fontsize=11, color=col, va="center",
+                    linespacing=1.4)
+        if k < len(rows) - 1:
+            ax.plot([0.01, 0.99], [y - 0.066, y - 0.066], color=FAINT, lw=1.0)
+    save(fig, out, "gbm_compare")
+
+
 FIGURES = (
     fig_train_test, fig_polyfit, fig_polyfit_curve, fig_bv_targets,
     fig_bv_fits, fig_bv_decomposition, fig_double_descent,
@@ -2337,9 +3283,13 @@ FIGURES = (
     fig_boosting_stages, fig_additive_model, fig_shrinkage,
     fig_learning_rate, fig_stacking, fig_oof, fig_cv_schemes,
     fig_concept_map, fig_recap, fig_eq_bias_variance, fig_eq_erm,
-    fig_eq_ridge_lasso, fig_eq_params, fig_eq_boosting, fig_eq_xgboost,
-    fig_eq_leaf_weight, fig_xgb_gh, fig_xgb_leaf_predict, fig_xgb_leaf_score,
+    fig_eq_ridge_lasso, fig_eq_params, fig_eq_boosting, fig_eq_xgboost, fig_eq_leaf_objective, fig_xgb_gh, fig_xgb_leaf_predict, fig_xgb_leaf_score,
     fig_xgb_split_search,
+    fig_lgbm_bins, fig_lgbm_prefix, fig_lgbm_binned_scan, fig_lgbm_subtract,
+    fig_lgbm_leafwise, fig_lgbm_goss,
+    fig_cat_example, fig_cat_chain, fig_cat_leak_why, fig_cat_leak, fig_cat_ordered_ts,
+    fig_cat_shift, fig_cat_shift_why, fig_cat_ordered_boosting, fig_cat_ordered_cost, fig_cat_oblivious,
+    fig_gbm_compare,
 )
 
 
