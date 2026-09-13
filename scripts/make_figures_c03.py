@@ -3281,7 +3281,223 @@ def fig_gbm_compare(out: Path) -> None:
     save(fig, out, "gbm_compare")
 
 
+# ============================================================ 0. Gaussian naive Bayes
+# A short visual warm-up: the one model in the deck that is fitted in closed form,
+# used later as the "too confident" baseline when we get to calibration.
+def _nb_toy(n=260, seed=3, shear=0.0):
+    """Two classes, two features. `shear` correlates the features within a class."""
+    rng = np.random.default_rng(seed)
+    y = rng.integers(0, 2, n)
+    noise = rng.normal(0, 1, (n, 2)) * np.array([1.0, 0.80])
+    if shear:
+        noise = noise @ np.array([[1.0, shear], [0.0, 1.0]])
+    return noise + np.array([[0.0, 0.0], [2.6, 1.9]])[y], y
+
+
+def _nb_params(X, y):
+    """Exactly what GaussianNB stores: a prior, and a mean/sd per feature per class."""
+    return [(np.mean(y == k), X[y == k].mean(0), X[y == k].std(0)) for k in (0, 1)]
+
+
+def _gauss_ellipses(ax, mu, sd, color):
+    """The axis-aligned contours naive Bayes believes in: no tilt, ever."""
+    from matplotlib.patches import Ellipse
+
+    for r, a in ((1.0, 0.30), (2.0, 0.16)):
+        ax.add_patch(Ellipse(mu, 2 * r * sd[0], 2 * r * sd[1], facecolor=color,
+                             alpha=a, edgecolor=color, lw=1.4, zorder=1))
+
+
+def _nb_scatter(ax, X, y, s=26):
+    for k, col, lab in ((0, BLUE, "class 0"), (1, RED, "class 1")):
+        ax.scatter(*X[y == k].T, s=s, color=col, alpha=0.75, zorder=3, label=lab,
+                   edgecolors="none")
+
+
+def fig_nb_idea(out: Path) -> None:
+    """Model each class one feature at a time, then multiply the curves."""
+    X, y = _nb_toy()
+    params = _nb_params(X, y)
+
+    fig = plt.figure(figsize=WIDE)
+    gs = fig.add_gridspec(2, 2, width_ratios=[1.35, 1], wspace=0.26, hspace=0.55)
+
+    ax = fig.add_subplot(gs[:, 0])
+    _nb_scatter(ax, X, y)
+    for (_, mu, sd), col in zip(params, (BLUE, RED)):
+        _gauss_ellipses(ax, mu, sd, col)
+    ax.set_xlabel("$x_1$")
+    ax.set_ylabel("$x_2$")
+    ax.set_title("one bell per class: never tilted", fontsize=12.5)
+    ax.legend(frameon=False, fontsize=10.5, loc="upper left")
+
+    grids = (np.linspace(X[:, 0].min() - 1, X[:, 0].max() + 1, 300),
+             np.linspace(X[:, 1].min() - 1, X[:, 1].max() + 1, 300))
+    for j in (0, 1):
+        ax = fig.add_subplot(gs[j, 1])
+        g = grids[j]
+        for (_, mu, sd), col in zip(params, (BLUE, RED)):
+            dens = np.exp(-0.5 * ((g - mu[j]) / sd[j]) ** 2) / (sd[j] * np.sqrt(2 * np.pi))
+            ax.plot(g, dens, color=col, lw=2.6)
+            ax.fill_between(g, dens, color=col, alpha=0.16)
+        ax.set_title(f"$p(x_{j + 1}\\mid y)$ :  mean and spread, per class",
+                     fontsize=11.5)
+        ax.set_yticks([])
+        ax.set_xlabel(f"$x_{j + 1}$")
+
+    fig.text(0.5, -0.02, "the 2-D model is just the product of the 1-D fits: "
+                         "that product is the whole assumption",
+             ha="center", fontsize=12.5, color=AMBER)
+    save(fig, out, "nb_idea")
+
+
+def fig_eq_gaussian_nb(out: Path) -> None:
+    equation(out, "eq_gaussian_nb", [
+        r"$P(y=k\mid x)\;\propto\;P(y=k)\;\prod_{j=1}^{d}\,p(x_j\mid y=k)$",
+        r"$p(x_j\mid y=k)\;=\;\mathcal{N}\!\left(x_j;\;\mu_{jk},\;"
+        r"\sigma_{jk}^{2}\right)$",
+    ])
+
+
+def fig_nb_fit(out: Path) -> None:
+    """Fitting is counting: two numbers per feature per class, in one pass."""
+    X, y = _nb_toy()
+    params = _nb_params(X, y)
+
+    fig, axes = plt.subplots(1, 2, figsize=WIDE, gridspec_kw={"wspace": 0.08})
+
+    ax = axes[0]
+    blank(ax)
+    ax.set_title("fitting = one pass over the data", fontsize=12.5)
+    box(ax, (0.5, 0.88), 0.46, 0.15, "training data  $(X, y)$", ec=GREY)
+    # the three outputs are parallel, not sequential: fan them out side by side
+    for x, txt, col in (
+        (0.17, "$\\pi_k$\nshare of rows\nin class $k$", GREEN),
+        (0.50, "$\\mu_{jk}$\nmean of feature $j$\nin class $k$", BLUE),
+        (0.83, "$\\sigma_{jk}$\nits standard\ndeviation", PURPLE),
+    ):
+        box(ax, (x, 0.47), 0.29, 0.30, txt, ec=col, fs=11.5)
+        arrow(ax, (0.5, 0.80), (x, 0.63))
+    ax.text(0.5, 0.16, "no loss  ·  no gradients  ·  no iterations",
+            ha="center", va="center", fontsize=13, color=RED)
+
+    ax = axes[1]
+    blank(ax)
+    ax.set_title("everything the model stores", fontsize=12.5)
+    cols = (0.34, 0.60, 0.86)
+    for x, h in zip(cols, (r"$\pi_k$", r"$\mu_{1k}\pm\sigma_{1k}$",
+                           r"$\mu_{2k}\pm\sigma_{2k}$")):
+        ax.text(x, 0.84, h, ha="center", fontsize=13.5, color=GREY)
+    ax.plot([0.05, 0.97], [0.75, 0.75], color=FAINT, lw=1.4)
+    for i, ((pi, mu, sd), col) in enumerate(zip(params, (BLUE, RED))):
+        yy = 0.63 - 0.16 * i
+        ax.text(0.06, yy, f"class {i}", fontsize=13, color=col, va="center")
+        for x, txt in zip(cols, (f"{pi:.2f}", f"{mu[0]:.2f} $\\pm$ {sd[0]:.2f}",
+                                 f"{mu[1]:.2f} $\\pm$ {sd[1]:.2f}")):
+            ax.text(x, yy, txt, ha="center", fontsize=13, color=INK, va="center")
+    ax.text(0.5, 0.28, "Parameters: $2d + 1$ numbers for $d$ features",
+            ha="center", fontsize=13, color=AMBER)
+    save(fig, out, "nb_fit")
+
+
+def fig_nb_predict(out: Path) -> None:
+    """One test point: the prior plus one vote per feature, added in log-odds."""
+    X, y = _nb_toy()
+    params = _nb_params(X, y)
+    x0 = np.array([1.7, 1.25])
+
+    def logdens(k, j):
+        _, mu, sd = params[k]
+        return -0.5 * ((x0[j] - mu[j]) / sd[j]) ** 2 - np.log(sd[j] * np.sqrt(2 * np.pi))
+
+    prior = np.log(params[1][0] / params[0][0])
+    votes = [logdens(1, j) - logdens(0, j) for j in (0, 1)]
+    total = prior + sum(votes)
+    p = 1 / (1 + np.exp(-total))
+
+    fig, axes = plt.subplots(1, 2, figsize=WIDE, gridspec_kw={"wspace": 0.24})
+
+    ax = axes[0]
+    _nb_scatter(ax, X, y, s=20)
+    for (_, mu, sd), col in zip(params, (BLUE, RED)):
+        _gauss_ellipses(ax, mu, sd, col)
+    ax.plot(*x0, "*", color=INK, ms=22, zorder=5)
+    ax.annotate("new patient", x0, x0 + np.array([-1.5, 1.3]), fontsize=12,
+                color=INK, ha="center",
+                arrowprops=dict(arrowstyle="->", color=INK))
+    ax.set_xlabel("$x_1$")
+    ax.set_ylabel("$x_2$")
+    ax.set_title("where does this row fall?", fontsize=12.5)
+
+    ax = axes[1]
+    labels = ["prior", "$x_1$ says", "$x_2$ says", "total"]
+    vals = [prior, votes[0], votes[1], total]
+    colors = [GREEN, BLUE, PURPLE, INK]
+    left = 0.0
+    for i, (v, col) in enumerate(zip(vals, colors)):
+        base = 0.0 if i == 3 else left
+        ax.barh(3 - i, v, left=base, height=0.55, color=col, alpha=0.85)
+        ax.text(base + v + (0.12 if v >= 0 else -0.12), 3 - i, f"{v:+.2f}",
+                va="center", ha="left" if v >= 0 else "right", fontsize=12, color=col)
+        if i < 3:
+            left += v
+    ax.axvline(0, color=GREY, lw=1.2)
+    ax.set_yticks(range(4)[::-1])
+    ax.set_yticklabels(labels, fontsize=12.5)
+    ax.set_xlabel("log-odds for class 1")
+    span = max(abs(total), max(abs(v) for v in vals))
+    ax.set_xlim(min(0, total) - 0.45 * span, max(0, total) + 1.1 * span)
+    ax.set_title("each feature adds its own vote", fontsize=12.5)
+    ax.text(total, -0.85, f"$\\sigma$(total) = {p:.2f}  probability of class 1",
+            ha="center", fontsize=13, color=AMBER)
+    ax.set_ylim(-1.3, 3.6)
+    ax.spines["left"].set_visible(False)
+    ax.tick_params(axis="y", length=0)
+    save(fig, out, "nb_predict")
+
+
+def fig_nb_boundary(out: Path) -> None:
+    """The assumption holds, then it does not — and the boundary tilts the wrong way."""
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.naive_bayes import GaussianNB
+
+    fig, axes = plt.subplots(1, 2, figsize=WIDE, gridspec_kw={"wspace": 0.22})
+    for ax, shear, title in (
+        (axes[0], 0.0, "features independent given $y$: assumption holds"),
+        (axes[1], 1.5, "features correlated given $y$: assumption broken"),
+    ):
+        loc = "lower right" if shear == 0.0 else "upper left"
+        X, y = _nb_toy(n=400, shear=shear)
+        _nb_scatter(ax, X, y, s=18)
+        for (_, mu, sd), col in zip(_nb_params(X, y), (BLUE, RED)):
+            _gauss_ellipses(ax, mu, sd, col)
+
+        pad = 1.2
+        gx = np.linspace(X[:, 0].min() - pad, X[:, 0].max() + pad, 300)
+        gy = np.linspace(X[:, 1].min() - pad, X[:, 1].max() + pad, 300)
+        GX, GY = np.meshgrid(gx, gy)
+        grid = np.column_stack([GX.ravel(), GY.ravel()])
+        nb = GaussianNB().fit(X, y)
+        ax.contour(GX, GY, nb.predict_proba(grid)[:, 1].reshape(GX.shape),
+                   levels=[0.5], colors=[INK], linewidths=2.4)
+        ax.plot([], [], color=INK, lw=2.4, label="naive Bayes")
+        lr = LogisticRegression().fit(X, y)
+        ax.contour(GX, GY, lr.predict_proba(grid)[:, 1].reshape(GX.shape),
+                   levels=[0.5], colors=[AMBER], linewidths=2.4, linestyles="--")
+        ax.plot([], [], color=AMBER, lw=2.4, ls="--", label="logistic regression")
+        ax.set_xlim(gx[0], gx[-1])
+        ax.set_ylim(gy[0], gy[-1])
+        ax.set_xlabel("$x_1$")
+        ax.set_ylabel("$x_2$")
+        ax.set_title(title, fontsize=12.5)
+        ax.legend(frameon=False, fontsize=10.5, loc=loc)
+    save(fig, out, "nb_boundary")
+
+
+
 FIGURES = (
+    fig_nb_idea, fig_eq_gaussian_nb, fig_nb_fit, fig_nb_predict,
+    fig_nb_boundary,
     fig_train_test, fig_polyfit, fig_polyfit_curve, fig_bv_targets,
     fig_bv_fits, fig_bv_decomposition, fig_double_descent,
     fig_double_descent_measured, fig_dd_ridge, fig_interpolation,
