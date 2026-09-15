@@ -1231,3 +1231,306 @@ And one thing it does NOT do: it does not give you a test set. The three-fold
 rule — fit, calibrate, evaluate — still needs a third, untouched set of patients
 to report on. Which brings us to why that rule exists at all.
 :::
+
+# From probabilities to decisions
+
+## TPR, TNR, PPV, NPV
+
+![](img/roc_vs_pr.png)
+
+::: notes
+AUC answered "can it rank". It did not answer "if this model raises an alarm,
+should I believe it", and for a rare outcome those are wildly different questions.
+
+Start with the first line on the right, because the whole slide turns on it.
+PREVALENCE is simply how common the outcome is in the group you are looking at —
+the number of patients who had the event, divided by the number of patients.
+(TP+FN)/N. If 195 of 1 000 surgical patients had a complication, the prevalence is
+19.5%. They have met it already under another name: it is the base rate ȳ from the
+Brier decomposition, the number a no-model model would predict for everybody.
+
+Three things to say about it, because all three come back. It is a property of the
+COHORT, not of the model — swapping models does not change it. It varies enormously
+by setting: the same condition might be 0.1% in the general population and 20%
+among people already referred to a specialist. And it is the reason a model
+validated in one place can behave differently in another, even when nothing about
+the model has changed.
+
+Then the rest of the vocabulary, once and properly, because half the confusion in
+this area is four names for two ideas. Recall, sensitivity and true
+positive rate are the same number: of the patients who had the event, what
+fraction did we catch. Specificity is its mirror on the other class. Precision and
+PPV are the same number too, and it is a different KIND of question: of the alarms
+we raised, what fraction were real.
+
+The line in red is the one to write down. Sensitivity and specificity condition on
+the truth — they are properties of the test. Precision and NPV condition on the
+prediction, so they depend on how common the disease is in the room you are
+standing in.
+
+Now the two curves, and the experiment is set up carefully: one cohort, one model,
+and I thin out the positives to change the prevalence without touching the score
+distribution inside either class. So any difference you see is class balance alone.
+
+Left, the ROC curve. Four prevalences from 50% down to 1%, and the curves lie on
+top of each other; AUC 0.824, 0.825, 0.828, 0.819 — that is sampling noise, not
+signal. ROC is built from TPR and FPR, both of which condition on the truth, so
+prevalence cancels out.
+
+Right, the precision–recall curve for the same four. It collapses. At 50%
+prevalence you hold precision near 0.9 out to recall 0.5; at 1% prevalence
+precision is under 0.2 almost immediately. Same model, same ranking, same AUC —
+and a completely different experience for the clinician receiving the alerts.
+
+So the rule: when the outcome is rare and the cost of a false alarm is real, the
+PR curve is the honest picture and ROC flatters. Note also the baselines differ.
+A random model has AUC 0.5 always, but its PR curve sits at precision = prevalence,
+so "PR-AUC 0.3" means something excellent at 1% prevalence and something terrible
+at 50%. Always report the prevalence next to a PR-AUC.
+:::
+
+## Precision depends prevalence
+
+![](img/ppv_prevalence.png)
+
+::: notes
+One more slide on this, because it is the single most common misreading of a
+validation paper, and it is Bayes' rule wearing a clinical hat.
+
+Left panel. Fix sensitivity at 90% and plot PPV against prevalence, log scale,
+for three specificities. Every curve collapses towards zero on the left. Follow
+the red one, specificity 90%, which most people would call a decent test: at 1%
+prevalence its PPV is about 8%. Nine out of ten alarms are false. The test did
+nothing wrong; there are simply a hundred times more well people than sick ones,
+so even a small false positive rate on that huge group swamps the true positives.
+
+And notice what fixes it: moving UP the curves, that is, specificity. Going from
+90% to 99% buys far more PPV than any plausible gain in sensitivity would. When
+the outcome is rare, specificity is the scarce resource.
+
+Right panel, the same test — identical sensitivity 90%, identical specificity 99%
+— deployed in three places. Population screening at 0.1% prevalence: PPV 8%.
+Primary care at 1%: PPV 48%. A specialist clinic where 20% of referrals have the
+disease: PPV 96%. The bar is the same test each time.
+
+Two consequences to state. First, a model validated in a specialist clinic and
+deployed in primary care will disappoint, and no amount of retraining fixes it —
+the population changed, not the model. Second, this is why the calibration half
+of the session matters: the intercept α is exactly what moves when prevalence
+shifts, and it is the one thing you can correct without refitting.
+:::
+
+## Thresholds impact
+
+![](img/threshold_matrices.png)
+
+::: notes
+Before we can talk about whether a decision is a good one, we need to be able to
+describe a decision at all. That is the confusion matrix, and this slide is the
+bridge from "the model outputs 0.34" to "the patient gets treated".
+
+The layout: rows are the TRUTH — did the complication happen — and columns are the
+DECISION the threshold produced. Four cells. True positives, top left, are the
+events we caught and acted on. False negatives, top right, are the events we
+missed. False positives, bottom left, are the people we treated who were going to
+be fine. True negatives, bottom right, are the people we correctly left alone.
+Every metric in this half of the session is a ratio of these four numbers.
+
+Now the point of the slide: it is ONE model, unchanged, on ONE cohort of a thousand
+patients. The only thing that differs between the three panels is where the
+threshold sits. And look how completely the picture changes.
+
+At 0.10 you treat 607 of the 1 000. You catch 177 of the 195 events — sensitivity
+91% — but 430 of the people you treat did not need it, so the PPV is 29%. Of every
+ten alarms, seven are false. This is what an over-cautious threshold buys: almost
+nothing gets missed, and most of the medicine is wasted.
+
+At 0.60 you treat 47 people. The PPV is 72%, so now most alarms are real — but
+sensitivity has collapsed to 17%, and 161 complications happen to patients the
+model told you not to worry about.
+
+At 0.30, in between, 242 treated, sensitivity 59%, PPV 48%.
+
+Which of these three is right? Nothing on this slide can tell you, and that is
+exactly the gap the next slide fills. Notice that none of the three is "the model
+being better or worse" — the model is identical. What changed is a value judgement
+about which error you would rather make.
+
+And one number that does NOT move across the three panels: the prevalence. 195
+events in 1 000 patients, 19.5%, in all three. It is a fact about the cohort, so
+the threshold cannot touch it — which is why sensitivity and specificity are stable
+across settings and PPV is not.
+:::
+
+## Threshold and context
+
+![](img/expected_utility.png)
+
+::: notes
+Everything so far evaluates the model. Now evaluate the DECISION, which needs
+something the data cannot supply.
+
+Left panel. To act on a prediction you must say what the four outcomes are worth.
+A true positive — a complication caught and prevented — call it +10. A false
+positive — someone treated who did not need it, with the side effects and cost
+that entails — call it −1. The two negatives are the do-nothing baseline, zero by
+construction, because utilities only ever matter up to a common shift.
+
+The red line is the honest part: those numbers do not come from your dataset. They
+come from clinicians, from patients, from health economics. No amount of data will
+tell you how bad an unnecessary course of antibiotics is relative to a missed
+sepsis. This is a values question wearing a numerical costume.
+
+Right panel. Once you have the numbers, expected utility per patient is a function
+of the threshold, and it has a maximum. Three cost ratios, three curves, three
+optima — and the optima are not mysterious. The vertical dotted lines are at
+p_t = C_FP / (C_FP + B_TP), and the fitted maxima sit on them. With a false
+positive costing 1 against a benefit of 10 you should treat anyone above 9% risk.
+Make the false positive as bad as the true positive is good, and the threshold
+goes to 50%.
+
+That formula is the whole slide, so make them stare at it. The threshold is not a
+tuning parameter to be optimised on validation data, and it is certainly not 0.5
+because that is `predict()`'s default. It is a statement about the relative harm of
+the two errors, and once a clinician tells you that ratio, the threshold is
+determined.
+
+Which gives us a way to evaluate models that includes the clinical stakes — the
+next two slides.
+:::
+
+## Net benefit
+
+![](img/net_benefit_idea.png)
+
+::: notes
+The trouble with expected utility is that nobody will give you +10 and −1. Ask a
+surgeon to put a number on a prevented complication and you will not get an answer.
+Net benefit is the trick that gets around this, and it is genuinely clever.
+
+Left panel. You will not get utilities out of a clinician, but you will get a
+threshold. "I would treat at a 10% risk" — that, people say readily. And by the
+formula from the previous slide, saying it commits them to the exchange rate
+whether they realise it or not: p_t/(1−p_t) = 0.10/0.90 = 1/9 = C_FP/B_TP. One
+prevented event is worth nine unnecessary treatments. The threshold and the cost
+ratio are the same information in different clothes.
+
+So take the threshold as the input and derive the weights from it, instead of
+asking for the weights.
+
+Right panel makes the exchange rate concrete across the range clinicians actually
+use. At p_t = 0.05, which is a cheap safe screening test, one true positive is
+worth nineteen false positives — you will accept a lot of over-referral. At
+p_t = 0.20, a real treatment with real side effects, one is worth four. At
+p_t = 0.50, major surgery, one is worth one, and you will only operate on someone
+you think is more likely than not to need it. The curve p_t/(1−p_t) is steep at the
+right end, which is the formal version of "you become very reluctant to intervene
+when the intervention is dangerous".
+
+Next slide turns this into a number you can compute.
+:::
+
+## Computing net benefit
+
+![](img/dca_build.png)
+
+::: notes
+Three steps, and it is all arithmetic you can do on a whiteboard.
+
+Step one. Pick a threshold — 0.20 here — and actually make the decisions. Treat
+everyone the model scores above 0.20. In this cohort of 5 000 that catches 731 true
+positives and produces 1 122 false positives.
+
+Step two. Count the true positives per patient, then subtract the false positives
+per patient weighted by the exchange rate that the threshold implies. 731/5000
+minus 1122/5000 times 0.20/0.80. That is 0.0901.
+
+The units are the reason to bother with this. Net benefit is measured in TRUE
+POSITIVES PER PATIENT, net of the harm done by the false alarms. Multiply by 1 000
+and you get "this model, used at a 20% threshold, is worth 90 net complications
+caught per thousand patients". That is a sentence you can say in a meeting with
+people who do not know what a Brier score is, which is exactly the point of the
+metric.
+
+Step three. There is nothing special about 0.20, so repeat for every threshold and
+plot. The curve slopes down, and it must: as the threshold rises you treat fewer
+people and catch fewer events, and the weight you place on each false positive
+rises at the same time.
+
+One warning while the formula is on screen. Net benefit is computed from the
+model's own probabilities against a threshold on the same scale, so it assumes the
+probabilities MEAN something. A miscalibrated model will be judged at the wrong
+operating point. Everything in the first half of this session is a prerequisite
+for this half.
+:::
+
+## Decision curve analysis
+
+![](img/dca_curve.png)
+
+::: notes
+A net benefit on its own is a number with no scale — is 0.09 good? Decision curve
+analysis answers that by plotting the model against the two strategies that need no
+model at all.
+
+Left panel. The blue curve is the model. The amber line is "treat everyone", which
+catches every event, so its net benefit starts at the prevalence and falls steeply
+as the weight on false positives grows. The dashed line at zero is "treat nobody",
+which by construction has a net benefit of exactly zero — no true positives and no
+false ones.
+
+Those two are the bar to clear. A model is worth deploying at a given threshold
+only if its curve is ABOVE both of them there, and the shaded region is where this
+one is.
+
+Right panel, how to read it, and I want them to be able to do this from a paper.
+The x axis is not a tuning knob, it is the clinician's own threshold — you find
+where you sit on it and read straight up. The highest curve at that point is the
+strategy to use. The vertical gap between the model and the next best strategy is
+the gain, and it is in interpretable units: a gap of 0.02 means twenty extra true
+positives per thousand patients WITHOUT any increase in false positives, because
+the weighting has already paid for them.
+
+Two things to note about the ends. On the far left everyone gets treated anyway, so
+no model can help. On the far right nobody is treated, and the bar is zero.
+
+And the last line, in red, is the one that separates DCA from a beauty contest:
+only the range of thresholds a clinician would actually use matters. If your model
+wins between 0.4 and 0.6 but nobody would ever set the threshold there, it has won
+nothing.
+:::
+
+## AUC vs decisions
+
+![](img/dca_compare.png)
+
+::: notes
+The payoff slide for the whole session, and it ties the two halves together.
+
+Two models on the same cohort. Left: model 2 has the better ROC curve, AUC 0.790
+against 0.774. On the strength of that alone it is the one you would publish.
+
+Middle: model 2 is badly miscalibrated. Its reliability curve sits well below the
+diagonal — it systematically overstates risk. Model 1's sits on the diagonal. We
+now have the vocabulary for this: model 2 has an intercept problem.
+
+Right: net benefit. Across the whole clinically plausible range of thresholds,
+model 1 is above model 2, and by a wide margin. Model 2 crosses zero around 0.26,
+meaning that past that threshold you would be better off treating nobody than using
+it. Model 1 is still positive at 0.45.
+
+Why: because model 2 overstates risk, a threshold of 0.20 on its output is not
+really a 20% threshold. It sweeps in far too many patients, so at the operating
+point the clinician actually chose, it generates false positives that its slightly
+better ranking cannot pay for. AUC never saw this, because — as we proved two
+sections ago — AUC only looks at order, and calibration is invisible to it.
+
+So the summary for the session. Ranking is necessary and not sufficient.
+Calibration makes the numbers mean something. Net benefit asks whether ACTING on
+them helps, and it is the only one of the three that involves the clinical stakes
+at all. A model is not ready because its AUC is high; it is ready when it ranks
+well, its probabilities are honest on data it has never seen, and its decision
+curve beats treat-all and treat-none across the thresholds your clinicians would
+actually use.
+:::
+
