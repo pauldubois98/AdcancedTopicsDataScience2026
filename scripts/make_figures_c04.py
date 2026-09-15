@@ -612,7 +612,7 @@ def fig_bernoulli_expfam(out: Path) -> None:
                         r"\dfrac{y\,\theta-b(\theta)}{\phi}"
                         r"+c(y,\phi)\right)$",
              fontsize=17, ha="center", va="center")
-    top.text(0.5, 0.10, "the shape we are aiming at",
+    top.text(0.5, 0.10, "the shape aiming at",
              fontsize=11.5, color=RED, ha="center", va="center")
 
     axes = [fig.add_subplot(gs[1, k]) for k in range(3)]
@@ -2322,6 +2322,411 @@ def fig_calibrated_cv(out: Path) -> None:
     save(fig, out, "calibrated_cv")
 
 
+# ============================== V. from probabilities to decisions
+def _pr(p, y):
+    o = np.argsort(-p)
+    tp = np.cumsum(y[o])
+    fp = np.cumsum(1 - y[o])
+    return tp / tp[-1], tp / np.maximum(tp + fp, 1)
+
+
+def _counts(p, y, t):
+    pred = p >= t
+    tp = int(np.sum(pred & (y == 1)))
+    fp = int(np.sum(pred & (y == 0)))
+    fn = int(np.sum(~pred & (y == 1)))
+    tn = int(np.sum(~pred & (y == 0)))
+    return tp, fp, fn, tn
+
+
+def _net_benefit(p, y, pts):
+    n = len(y)
+    nb = []
+    for t in pts:
+        tp, fp, _, _ = _counts(p, y, t)
+        nb.append(tp / n - (fp / n) * (t / (1 - t)))
+    return np.array(nb)
+
+
+def fig_roc_vs_pr(out: Path) -> None:
+    """One model, four prevalences: ROC frozen, PR collapsing."""
+    fig, axes = plt.subplots(1, 3, figsize=WIDE,
+                             gridspec_kw={"width_ratios": [1, 1, 1.1]})
+    prevs = (0.50, 0.20, 0.05, 0.01)
+    cols = ("#0b3d61", BLUE, "#6ba3d6", "#b9d4ec")
+
+    # ONE cohort, then thin the positives: that keeps the score distribution
+    # inside each class fixed, so the ROC curve is genuinely the same curve and
+    # only the class balance changes. Simulating each prevalence separately would
+    # also move discrimination and the comparison would prove nothing.
+    p0, y0 = _risk_scores(150_000, 41, prevalence=0.50, spread=1.6)
+    rng = np.random.default_rng(41)
+    pos = np.flatnonzero(y0 == 1)
+    neg = np.flatnonzero(y0 == 0)
+    for prev, col in zip(prevs, cols):
+        k = min(len(pos), int(round(prev * len(neg) / (1 - prev))))
+        keep = np.r_[rng.choice(pos, k, replace=False), neg]
+        p, y = p0[keep], y0[keep]
+        fpr, tpr, _ = _roc_curve(p, y)
+        rec, prec = _pr(p, y)
+        axes[0].plot(fpr, tpr, color=col, lw=2.6,
+                     label=f"{prev:.0%}  AUC {_auc(p, y):.3f}")
+        axes[1].plot(rec, prec, color=col, lw=2.6, label=f"{prev:.0%}")
+
+    axes[0].plot([0, 1], [0, 1], ls=":", color=GREY, lw=1.2)
+    axes[0].set_aspect("equal")
+    axes[0].set_xlabel("false positive rate")
+    axes[0].set_ylabel("true positive rate")
+    axes[0].set_title("ROC does not move", fontsize=12.5)
+    axes[0].legend(frameon=False, fontsize=9.5, loc="lower right",
+                   title="prevalence", title_fontsize=9.5)
+
+    axes[1].set_xlim(0, 1)
+    axes[1].set_ylim(0, 1)
+    axes[1].set_aspect("equal")
+    axes[1].set_xlabel("recall")
+    axes[1].set_ylabel("precision")
+    axes[1].set_title("precision collapses with prevalence", fontsize=12.5)
+    axes[1].legend(frameon=False, fontsize=9.5, loc="upper right")
+
+    ax = axes[2]
+    blank(ax)
+    ax.text(0.0, 0.94, "prevalence", fontsize=11.5, color=AMBER)
+    ax.text(0.0, 0.86, "(TP+FN) / N", fontsize=11.5, color=AMBER)
+    ax.text(0.55, 0.90, "the share who have it", fontsize=11.5, color=GREY,
+            va="center")
+    ax.plot([0.0, 1.0], [0.80, 0.80], color=FAINT, lw=1.4)
+    rows = (("sensitivity / recall / TPR", "TP / (TP+FN)", "of the sick, found"),
+            ("specificity / TNR", "TN / (TN+FP)", "of the well, cleared"),
+            ("precision / PPV", "TP / (TP+FP)", "of the alarms, real"),
+            ("NPV", "TN / (TN+FN)", "of the all-clears, real"))
+    for k, (a, b, c) in enumerate(rows):
+        yy = 0.68 - 0.155 * k
+        ax.text(0.0, yy + 0.042, a, fontsize=11.5, color=INK)
+        ax.text(0.0, yy - 0.042, b, fontsize=11.5, color=PURPLE)
+        ax.text(0.55, yy, c, fontsize=11.5, color=GREY, va="center")
+    ax.text(0.0, 0.02, "TPR & TNR are prevalence-free\nPPV & NPV are not",
+            fontsize=11.5, color=RED)
+    save(fig, out, "roc_vs_pr")
+
+
+def fig_ppv_prevalence(out: Path) -> None:
+    """PPV against prevalence at fixed sensitivity and specificity."""
+    prev = np.logspace(-4, 0, 400)
+    fig, axes = plt.subplots(1, 2, figsize=WIDE)
+
+    ax = axes[0]
+    for sp, col, lab in ((0.90, RED, "specificity 90%"),
+                         (0.99, AMBER, "specificity 99%"),
+                         (0.999, GREEN, "specificity 99.9%")):
+        se = 0.90
+        ppv = se * prev / (se * prev + (1 - sp) * (1 - prev))
+        ax.plot(prev, ppv, color=col, lw=2.8, label=lab)
+    ax.set_xscale("log")
+    ax.set_xlabel("prevalence  (log scale)")
+    ax.set_ylabel("PPV")
+    ax.set_ylim(0, 1)
+    ax.set_title("sensitivity fixed at 90%", fontsize=12.5)
+    ax.legend(frameon=False, fontsize=11, loc="upper left")
+    for pv in (0.001, 0.01, 0.10):
+        ax.axvline(pv, color=FAINT, lw=1.2, zorder=0)
+
+    ax = axes[1]
+    blank(ax)
+    ax.set_title("the same test, three clinics", fontsize=12.5)
+    se, sp = 0.90, 0.99
+    for k, (pv, lab) in enumerate(((0.001, "population screening"),
+                                   (0.01, "primary care"),
+                                   (0.20, "referred to specialist"))):
+        ppv = se * pv / (se * pv + (1 - sp) * (1 - pv))
+        yy = 0.72 - 0.26 * k
+        ax.text(0.0, yy, lab, fontsize=12.5, color=INK, va="center")
+        ax.text(0.55, yy, f"prevalence {pv:.1%}", fontsize=11.5, color=GREY,
+                va="center")
+        ax.add_patch(Rectangle((0.0, yy - 0.10), 0.98, 0.045, facecolor=FAINT,
+                               edgecolor="none"))
+        ax.add_patch(Rectangle((0.0, yy - 0.10), 0.98 * ppv, 0.045,
+                               facecolor=PURPLE, edgecolor="none"))
+        ax.text(0.98 * ppv + 0.02, yy - 0.078, f"PPV {ppv:.0%}", fontsize=12,
+                color=PURPLE, va="center")
+    save(fig, out, "ppv_prevalence")
+
+
+def fig_threshold_matrices(out: Path) -> None:
+    """One model, three thresholds, three completely different services."""
+    p, y = _risk_scores(1000, 77, prevalence=0.20)
+    fig, axes = plt.subplots(1, 3, figsize=WIDE)
+    for ax, t in zip(axes, (0.10, 0.30, 0.60)):
+        blank(ax)
+        tp, fp, fn, tn = _counts(p, y, t)
+        ax.set_title(f"treat if  p̂ > {t:.2f}", fontsize=13.5)
+        # rows are the truth, columns the decision: the event row holds TP and
+        # FN, the no-event row FP and TN
+        cells = ((0.30, 0.62, tp, RED, "TP"), (0.70, 0.62, fn, PURPLE, "FN"),
+                 (0.30, 0.36, fp, AMBER, "FP"), (0.70, 0.36, tn, GREY, "TN"))
+        for x, yy, v, col, lab in cells:
+            ax.add_patch(Rectangle((x - 0.19, yy - 0.12), 0.38, 0.24,
+                                   facecolor="white", edgecolor=col, lw=1.8))
+            ax.text(x, yy + 0.04, f"{v}", fontsize=19, color=col, ha="center",
+                    va="center")
+            ax.text(x, yy - 0.07, lab, fontsize=11, color=col, ha="center",
+                    va="center")
+        ax.text(0.30, 0.80, "predicted +", fontsize=11.5, color=GREY,
+                ha="center")
+        ax.text(0.70, 0.80, "predicted −", fontsize=11.5, color=GREY,
+                ha="center")
+        ax.text(0.06, 0.62, "event", fontsize=11.5, color=GREY, ha="center",
+                va="center", rotation=90)
+        ax.text(0.06, 0.36, "no event", fontsize=11.5, color=GREY, ha="center",
+                va="center", rotation=90)
+        se = tp / max(tp + fn, 1)
+        ppv = tp / max(tp + fp, 1)
+        ax.text(0.5, 0.16, f"treated {tp + fp} of 1000\n"
+                           f"sensitivity {se:.0%}   precision {ppv:.0%}",
+                fontsize=12.5, ha="center", va="center", linespacing=1.7)
+    save(fig, out, "threshold_matrices")
+
+
+def fig_expected_utility(out: Path) -> None:
+    """Put numbers on the cells; the optimal threshold falls out of them."""
+    p, y = _risk_scores(20_000, 79, prevalence=0.20)
+    ts = np.linspace(0.01, 0.95, 150)
+
+    fig, axes = plt.subplots(1, 2, figsize=WIDE,
+                             gridspec_kw={"width_ratios": [1.0, 1.1],
+                                          "wspace": 0.28})
+
+    ax = axes[0]
+    blank(ax)
+    ax.set_title("utility", fontsize=13)
+    cells = (("true positive", "+10", "complication prevented", GREEN),
+             ("false positive", "−1", "un-needed treatment", AMBER),
+             ("false negative", "0", "the baseline: do nothing", GREY),
+             ("true negative", "0", "the baseline: do nothing", GREY))
+    for k, (a_, v, c, col) in enumerate(cells):
+        yy = 0.78 - 0.17 * k
+        ax.text(0.0, yy, a_, fontsize=12, color=col, va="center")
+        ax.text(0.36, yy, v, fontsize=15, color=col, va="center", ha="center")
+        ax.text(0.46, yy, c, fontsize=10.5, color=GREY, va="center")
+    ax.plot([0.0, 1.0], [0.16, 0.16], color=FAINT, lw=1.6)
+
+    ax = axes[1]
+    lows = []
+    for (btp, cfp, col, lab) in ((10, 1, BLUE, r"$C_{FP}=1$"),
+                                 (10, 5, PURPLE, r"$C_{FP}=5$"),
+                                 (10, 10, RED, r"$C_{FP}=10$")):
+        eu = np.array([(_counts(p, y, t)[0] * btp - _counts(p, y, t)[1] * cfp)
+                       / len(y) for t in ts])
+        ax.plot(ts, eu, color=col, lw=2.6,
+                label=f"{lab},  $B_{{TP}}=10$   →   $p_t$ = {cfp / (cfp + btp):.2f}")
+        k = int(np.argmax(eu))
+        ax.plot([ts[k]], [eu[k]], "o", color=col, ms=8, zorder=4)
+        ax.axvline(cfp / (cfp + btp), color=col, ls=":", lw=1.3)
+        lows.append(eu.min())
+    ax.set_xlabel("decision threshold  t")
+    ax.set_ylabel("expected utility")
+    ax.set_title(r"the optimum sits at  $p_t = C_{FP}/(C_{FP}+B_{TP})$",
+                 fontsize=12.5)
+    ax.set_ylim(min(lows) * 1.05, 2.0)
+    ax.legend(frameon=False, fontsize=10.5, loc="lower right")
+    save(fig, out, "expected_utility")
+
+
+def fig_net_benefit_idea(out: Path) -> None:
+    """The exchange rate: how many false alarms is one catch worth?"""
+    fig, axes = plt.subplots(1, 2, figsize=WIDE)
+
+    ax = axes[0]
+    blank(ax)
+    ax.set_title("interpretation of the threshold", fontsize=13)
+    ax.text(0.0, 0.80, "\"I would treat at a 10% risk\"", fontsize=14,
+            color=INK, va="center")
+    ax.text(0.0, 0.62, "so one prevented event is worth\n"
+                       "nine needless treatments",
+            fontsize=12, color=GREY, va="center", linespacing=1.7)
+    ax.plot([0.0, 1.0], [0.48, 0.48], color=FAINT, lw=1.6)
+    ax.text(0.0, 0.36,
+            r"$\dfrac{p_t}{1-p_t}=\dfrac{0.10}{0.90}=\dfrac{1}{9}"
+            r"=\dfrac{C_{FP}}{B_{TP}}$",
+            fontsize=22, color=AMBER, va="center")
+    ax.text(0.0, 0.09, "a FP is penalised 1/9 of a TP"
+                       "\n=> threshold is the exchange rate",
+            fontsize=12, color=INK, va="center", linespacing=1.7)
+
+    ax = axes[1]
+    pts = np.linspace(0.02, 0.6, 200)
+    ax.plot(pts, pts / (1 - pts), color=AMBER, lw=3.0)
+    for t, lab, tx, ty in ((0.10, "screening: \ncheap, safe", 0.01, 0.5),
+                           (0.20, "treatment\nwith side effects", 0.15, 0.9),
+                           (0.50, "major surgery", 0.3, 1.3)):
+        w = t / (1 - t)
+        ax.plot([t], [w], "o", color=INK, ms=7, zorder=4)
+        ax.annotate(f"{lab}\n1 TP costs {1 / w:.0f} FP", (t, w), (tx, ty),
+                    fontsize=10.5, color=INK, ha="left", va="center",
+                    linespacing=1.5,
+                    arrowprops=dict(arrowstyle="->", color=GREY))
+    ax.set_xlabel(r"threshold probability  $p_t$")
+    ax.set_ylabel(r"weight on a false positive  $p_t/(1-p_t)$")
+    ax.set_title("cost of false positive", fontsize=12.5)
+    save(fig, out, "net_benefit_idea")
+
+
+def fig_dca_build(out: Path) -> None:
+    """One threshold at a time: count, weigh, plot."""
+    p, y = _risk_scores(5000, 81, prevalence=0.20)
+    pts = np.linspace(0.01, 0.60, 120)
+    nb = _net_benefit(p, y, pts)
+
+    fig, axes = plt.subplots(1, 3, figsize=WIDE,
+                             gridspec_kw={"wspace": 0.42})
+
+    ax = axes[0]
+    blank(ax)
+    ax.set_title("① pick a threshold", fontsize=12)
+    t = 0.20
+    tp, fp, fn, tn = _counts(p, y, t)
+    ax.text(0.5, 0.72, r"$p_t=0.20$", fontsize=22, ha="center", va="center")
+    ax.text(0.5, 0.46, f"TP = {tp}      FP = {fp}", fontsize=15, ha="center",
+            va="center", color=INK)
+    ax.text(0.5, 0.22, f"out of N = {len(y)} patients", fontsize=12.5,
+            ha="center", color=GREY)
+
+    ax = axes[1]
+    blank(ax)
+    ax.set_title("② weigh the decisions", fontsize=12)
+    w = t / (1 - t)
+    # the general form, assembled from pieces so the two pointers can sit under
+    # exactly the terms they name: p_t does two jobs, and separating them is what
+    # explains why "treat everyone" still slopes down
+    ax.text(0.00, 0.86, r"$NB\ =$", fontsize=15, color=INK, va="center")
+    ax.text(0.26, 0.86, r"$\frac{TP}{N}$", fontsize=15, color=INK,
+            ha="center", va="center")
+    ax.text(0.36, 0.86, r"$-$", fontsize=15, color=INK, ha="center",
+            va="center")
+    ax.text(0.46, 0.86, r"$\frac{FP}{N}$", fontsize=15, color=INK,
+            ha="center", va="center")
+    ax.text(0.56, 0.86, r"$\times$", fontsize=15, color=INK, ha="center",
+            va="center")
+    ax.text(0.75, 0.86, r"$\frac{p_t}{1-p_t}$", fontsize=15, color=INK,
+            ha="center", va="center")
+    for x0, x1, xm, ystem, lab, col in (
+            (0.22, 0.3, 0.26, 0.69, "treated", BLUE),
+            (0.4, 0.84, 0.62, 0.54, "cost of false positives", AMBER)):
+        ax.plot([x0, x1], [0.75, 0.75], color=col, lw=1.4)
+        ax.plot([xm, xm], [0.75, ystem], color=col, lw=1.4)
+        ax.text(xm, ystem - 0.03, lab, fontsize=10, color=col, ha="center",
+                va="top", linespacing=1.5)
+    ax.plot([0.0, 1.0], [0.42, 0.42], color=FAINT, lw=1.4)
+    ax.text(0.5, 0.31, rf"$=\frac{{{tp}}}{{{len(y)}}}"
+                       rf"-\frac{{{fp}}}{{{len(y)}}}\times\frac{{0.20}}{{0.80}}$",
+            fontsize=15, ha="center", va="center")
+    ax.text(0.5, 0.08, f"= {tp / len(y) - (fp / len(y)) * w:.4f}", fontsize=21,
+            ha="center", va="center", color=GREEN)
+    ax = axes[2]
+    ax.plot(pts, nb, color=GREEN, lw=3.0)
+    k = int(np.argmin(np.abs(pts - t)))
+    ax.plot([pts[k]], [nb[k]], "o", color=INK, ms=8, zorder=4)
+    ax.set_xlabel(r"threshold probability  $p_t$")
+    ax.set_ylabel("net benefit")
+    ax.set_title("③ repeat for every threshold", fontsize=12)
+    save(fig, out, "dca_build")
+
+
+def fig_dca_curve(out: Path) -> None:
+    """Model against treat-all and treat-none, the whole point of DCA."""
+    p, y = _risk_scores(20_000, 82, prevalence=0.20)
+    pts = np.linspace(0.01, 0.65, 200)
+    nb_model = _net_benefit(p, y, pts)
+    prev = y.mean()
+    nb_all = prev - (1 - prev) * pts / (1 - pts)
+
+    fig, axes = plt.subplots(1, 2, figsize=WIDE,
+                             gridspec_kw={"width_ratios": [1.15, 1.0]})
+
+    ax = axes[0]
+    ax.plot(pts, nb_model, color=BLUE, lw=3.0, label="use the model")
+    ax.plot(pts, nb_all, color=AMBER, lw=2.4, label="treat everyone")
+    ax.plot(pts, np.zeros_like(pts), color=GREY, lw=2.0, ls="--", label="treat nobody")
+    ax.fill_between(pts, np.maximum(nb_all, 0), nb_model,
+                    where=nb_model > np.maximum(nb_all, 0), color=BLUE,
+                    alpha=0.12, lw=0)
+    ax.set_xlabel(r"threshold probability  $p_t$")
+    ax.set_ylabel("net benefit")
+    ax.set_ylim(-0.05, prev * 1.15)
+    ax.set_xlim(0, 0.65)
+    ax.legend(frameon=False, fontsize=11, loc="upper right")
+    ax.set_title("the decision curve", fontsize=13)
+    ax.annotate("model beats simple strategies",
+                (0.30, np.interp(0.30, pts, nb_model)), (0.36, prev * 0.62),
+                fontsize=11, color=BLUE, linespacing=1.5,
+                arrowprops=dict(arrowstyle="->", color=BLUE))
+
+    ax = axes[1]
+    blank(ax)
+    lines = (("$x$ axis", "the risk at which treatment is performed", INK),
+             ("top curve", "the strategy using model", BLUE),
+             ("left edge", "the strategy 'treat everyone'", AMBER),
+             ("right edge", "the strategy 'treat nobody'", GREY))
+    for k, (a, b, col) in enumerate(lines):
+        yy = 0.78 - 0.16 * k
+        ax.text(0.0, yy, a, fontsize=12, color=col, va="center")
+        ax.text(0.40, yy, b, fontsize=11.5, color=col, va="center",
+                linespacing=1.5)
+    ax.plot([0.0, 1.0], [0.09, 0.09], color=FAINT, lw=1.4)
+    save(fig, out, "dca_curve")
+
+
+def fig_dca_compare(out: Path) -> None:
+    """Higher AUC, lower net benefit where it counts."""
+    n = 20_000
+    p, y = _risk_scores(n, 83, prevalence=0.15)
+    rng = np.random.default_rng(5)
+    # model 1: honest probabilities, slightly noisier ranking
+    m1 = sigmoid(logit(p) + rng.normal(0, 0.55, n))
+    # model 2: a better ranking overall, but badly miscalibrated upward, so at a
+    # clinically sensible threshold it treats far too many people
+    m2 = sigmoid(1.15 * logit(p) + rng.normal(0, 0.30, n) + 1.5)
+    pts = np.linspace(0.01, 0.45, 200)
+    prev = y.mean()
+    nb_all = prev - (1 - prev) * pts / (1 - pts)
+
+    fig, axes = plt.subplots(1, 3, figsize=WIDE,
+                             gridspec_kw={"wspace": 0.34})
+
+    ax = axes[0]
+    for m, col, lab in ((m1, BLUE, "model 1"), (m2, RED, "model 2")):
+        fpr, tpr, _ = _roc_curve(m, y)
+        ax.plot(fpr, tpr, color=col, lw=2.6,
+                label=f"{lab}   AUC {_auc(m, y):.3f}")
+    ax.plot([0, 1], [0, 1], ls=":", color=GREY, lw=1.2)
+    ax.set_aspect("equal")
+    ax.set_xlabel("false positive rate")
+    ax.set_ylabel("true positive rate")
+    ax.set_title("model 2 wins on AUC", fontsize=12.5)
+    ax.legend(frameon=False, fontsize=10, loc="lower right")
+
+    ax = axes[1]
+    _diagonal(ax, label=False)
+    for m, col, lab in ((m1, BLUE, "model 1"), (m2, RED, "model 2")):
+        xs_, ys_, _ = _bins(m, y, 10)
+        ax.plot(xs_, ys_, "o-", color=col, lw=2.4, ms=5, label=lab)
+    _calib_axes(ax)
+    ax.set_title("model 2 loses on calibration", fontsize=12.5)
+    ax.legend(frameon=False, fontsize=10.5, loc="upper left")
+
+    ax = axes[2]
+    for m, col, lab in ((m1, BLUE, "model 1"), (m2, RED, "model 2")):
+        ax.plot(pts, _net_benefit(m, y, pts), color=col, lw=2.8, label=lab)
+    ax.plot(pts, nb_all, color=AMBER, lw=2.0, label="treat everyone")
+    ax.plot(pts, np.zeros_like(pts), color=GREY, lw=1.8, ls="--", label="treat nobody")
+    ax.set_ylim(-0.03, prev * 1.15)
+    ax.set_xlabel(r"threshold probability  $p_t$")
+    ax.set_ylabel("net benefit")
+    ax.set_title("model 1 is better to deploy", fontsize=12.5)
+    ax.legend(frameon=False, fontsize=10, loc="upper right")
+    save(fig, out, "dca_compare")
+
+
 FIGURES = (
     fig_bernoulli_expfam, fig_expfam, fig_expfam_loss, fig_bernoulli_b,
     fig_log_loss_intro, fig_log_loss_likelihood, fig_forest_boundary_bias,
@@ -2332,6 +2737,10 @@ FIGURES = (
     fig_cox_reading, fig_ece_arithmetic, fig_ece_caveats, fig_platt_fit,
     fig_isotonic_fit, fig_platt_vs_isotonic, fig_temperature_scaling,
     fig_temperature_effect, fig_calibrated_cv,
+    fig_roc_vs_pr, fig_ppv_prevalence, fig_expected_utility,
+    fig_threshold_matrices, fig_net_benefit_idea, fig_dca_build,
+    fig_dca_curve,
+    fig_dca_compare,
 )
 
 
