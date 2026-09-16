@@ -18,4 +18,8 @@ Each week has a **lecture** (2.5h, slides/code along) and a **recitation** (1.5h
 - Session 2: Feature engineering and missing data
     - Slides ([md](Course02/slides.md) / [pptx](Course02/slides.pptx))
     - Advanced slides ([pptx](Course02/slides-advanced.pptx))
-    - [Notebook](Course02/numpy_backpropagation.ipynb)
+    - [Notebook — backpropagation from scratch](Course02/numpy_backpropagation.ipynb)
+    - [Notebook solutions — backpropagation from scratch](Course02/numpy_backpropagation-solutions.ipynb)
+- Session 3: Generalization, regularization and ensembles
+    - Slides ([md](Course03/slides.md) / [pptx](Course03/slides.pptx))
+    - [Notebook — decision trees from scratch](Course03/numpy_trees.ipynb)
