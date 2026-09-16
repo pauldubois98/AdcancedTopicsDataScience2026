@@ -1,5 +1,6 @@
 ## Preferences:
-**Ask me if ther is any implementation choice to make.**
+**Ask me if there is any implementation choice to make.**
+**Do not use "-", instead, use "," or "()".**
 
 *All the tools listed here may not be used for this project, this is a list of general preferences.*
 
