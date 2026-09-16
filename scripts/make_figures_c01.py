@@ -7,7 +7,7 @@ which composites a marker onto the real chest radiograph already in `Course01/im
 to show how a spurious cue is learned — it is a constructed example, and the slide
 says so.
 
-Usage: make_figures.py [outdir]      (default: Course01/img)
+Usage: make_figures_c01.py [outdir]      (default: Course01/img)
 """
 
 from __future__ import annotations
