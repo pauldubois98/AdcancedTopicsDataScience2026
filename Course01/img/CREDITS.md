@@ -27,12 +27,13 @@ shared or published** — if it is AI-generated, say so; if it came from somewhe
 ## Generated figures
 
 `noise.png`, `missingness.png`, `imbalance.png`, `shift.png` and `shortcut.png` are not downloaded.
-They are rendered by `scripts/make_figures.py` (`make figures`) from seeded synthetic data, so they rebuild identically anywhere.
+They are rendered by `scripts/make_figures_c01.py` (`make figures`) from seeded synthetic data, so they rebuild identically anywhere.
 Do not edit them by hand; edit the script.
+Each of the five ships as a pair: `<name>_q.png` puts the question to the room and `<name>.png` reveals the answer, so the two are the same figure at two stages and must stay in step.
 `shortcut.png` is composite: it draws a fake "PORTABLE" marker onto `image2d_medical.jpg` above to show how a spurious cue is learned.
 It is a constructed illustration; the underlying phenomenon is Zech et al. 2018.
 
-The `*_alt.png` files are the non-medical twin of a section-1 concept, from the same script and equally synthetic (`errors_alt_bis.png` is a second figure for the same concept, not a sixth concept).
+The `*_alt.png` files are the non-medical twin of a section-1 concept, from the same script and equally synthetic, single-stage rather than a question/reveal pair (`errors_alt_bis.png` is a second figure for the same concept, not a sixth concept).
 `shortcut_alt.png` is a drawing, not a photograph: it illustrates the husky-vs-wolf experiment in Ribeiro et al. 2016, and the slide says so.
 `imbalance_alt.png` is the only one carrying real numbers: 492 frauds in 284 807 transactions, the class balance of the ULB/Worldline credit-card dataset.
 
