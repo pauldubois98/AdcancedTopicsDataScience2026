@@ -23,3 +23,6 @@ Each week has a **lecture** (2.5h, slides/code along) and a **recitation** (1.5h
 - Session 3: Generalization, regularization and ensembles
     - Slides ([md](Course03/slides.md) / [pptx](Course03/slides.pptx))
     - [Notebook — decision trees from scratch](Course03/numpy_trees.ipynb)
+    - [Notebook solutions — decision trees from scratch](Course03/numpy_trees-solutions.ipynb)
+- Session 4: Evaluating clinical prediction models
+    - Slides ([md](Course04/slides.md) / [pptx](Course04/slides.pptx))
