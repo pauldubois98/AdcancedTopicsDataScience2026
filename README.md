@@ -31,3 +31,7 @@ Each week has a **lecture** (2.5h, slides/code along) and a **recitation** (1.5h
     - [Notebook — Boosting](Course04/boosting.ipynb)
     - [Notebook class — Boosting](Course04/boosting-class.ipynb)
     - [Notebook solutions — Boosting](Course04/boosting-solutions.ipynb)
+- Session 5: Automatic Differentiation
+    - Slides ([pptx](Course05/slides.pptx))
+    - [Notebook — Numpy to PyTorch](Course05/numpy_to_torch.ipynb)
+
