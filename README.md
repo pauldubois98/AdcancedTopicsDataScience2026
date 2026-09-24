@@ -19,11 +19,15 @@ Each week has a **lecture** (2.5h, slides/code along) and a **recitation** (1.5h
     - Slides ([md](Course02/slides.md) / [pptx](Course02/slides.pptx))
     - Advanced slides ([pptx](Course02/slides-advanced.pptx))
     - [Notebook — backpropagation from scratch](Course02/numpy_backpropagation.ipynb)
+    - [Notebook class — backpropagation from scratch](Course02/numpy_backpropagation-class.ipynb)
     - [Notebook solutions — backpropagation from scratch](Course02/numpy_backpropagation-solutions.ipynb)
 - Session 3: Generalization, regularization and ensembles
     - Slides ([md](Course03/slides.md) / [pptx](Course03/slides.pptx))
     - [Notebook — decision trees from scratch](Course03/numpy_trees.ipynb)
+    - [Notebook class — decision trees from scratch](Course03/numpy_trees-class.ipynb)
     - [Notebook solutions — decision trees from scratch](Course03/numpy_trees-solutions.ipynb)
 - Session 4: Evaluating clinical prediction models
     - Slides ([md](Course04/slides.md) / [pptx](Course04/slides.pptx))
     - [Notebook — Boosting](Course04/boosting.ipynb)
+    - [Notebook class — Boosting](Course04/boosting-class.ipynb)
+    - [Notebook solutions — Boosting](Course04/boosting-solutions.ipynb)
