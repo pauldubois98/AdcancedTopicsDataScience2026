@@ -68,10 +68,38 @@ C04_STEMS := auc_build auc_exception auc_monotone bernoulli_b \
 
 C04_FIGURES := $(foreach f,$(C04_STEMS),Course04/img/$(f).png)
 
+# CourseTS part 1 (structure): scripts/make_figures_cTS1.py
+CTS1_STEMS := ts_zoo iid_broken components eq_decomposition add_vs_mult \
+             moving_average ma_edges classical_decomp loess_build \
+             loess_span stl stl_inner stl_outer eq_stationarity \
+             stationary_zoo why_stationarity white_noise ar_intro \
+             ar_memory random_walk_intro random_walk unit_root ar_p \
+             backshift char_eq root_cases ma_intro spurious_regression \
+             df_intuition df_test adf_test adf_recipe kpss_intuition \
+             kpss_recipe adf_kpss differencing over_differencing \
+             box_cox_why box_cox_lambda box_cox_choice lag_def eq_acf \
+             acf_def acf_build acf_zoo acf_bands pacf_idea pacf_def \
+             acf_pacf_signature ljung_box_intuition ljung_box_null \
+             ljung_box_recipe
+
+# CourseTS part 2 (forecasting and learning): scripts/make_figures_cTS2.py
+CTS2_STEMS := forecast_task baselines naive_strong metrics eq_mase \
+             backtest cv_wrong intervals ar_process ma_process eq_arima \
+             arima_pipeline sarima box_jenkins aic_bic residual_diag \
+             arima_limits prophet_model prophet_trend fourier_seasonality \
+             prophet_events prophet_vs_arima supervised_reframe \
+             lag_features direct_recursive ts_leakage global_models \
+             extrapolation euclidean_fail dtw_idea eq_dtw dtw_matrix \
+             dtw_constraints knn_dtw feature_pipeline feature_zoo \
+             tsfresh_flow multiple_testing rocket method_map
+
+CTS1_FIGURES := $(foreach f,$(CTS1_STEMS),CourseTS/img/$(f).png)
+CTS2_FIGURES := $(foreach f,$(CTS2_STEMS),CourseTS/img/$(f).png)
+
 .PHONY: slides figures clean-slides clean-figures
 slides: $(SLIDE_TARGETS)
 
-figures: $(C01_FIGURES) $(C02_FIGURES) $(C03_FIGURES) $(C04_FIGURES) $(C05_FIGURES)
+figures: $(C01_FIGURES) $(C02_FIGURES) $(C03_FIGURES) $(C04_FIGURES) $(CTS1_FIGURES) $(CTS2_FIGURES)
 
 $(C01_FIGURES): scripts/make_figures_c01.py Course01/img/image2d_medical.jpg
 	python3 scripts/make_figures_c01.py Course01/img
@@ -85,13 +113,18 @@ $(C03_FIGURES): scripts/make_figures_c03.py
 $(C04_FIGURES): scripts/make_figures_c04.py
 	python3 scripts/make_figures_c04.py Course04/img
 
-$(C05_FIGURES): scripts/make_figures_c05.py
-	python3 scripts/make_figures_c05.py Course05/img
+$(CTS1_FIGURES): scripts/make_figures_cTS1.py scripts/cts_common.py
+	python3 scripts/make_figures_cTS1.py CourseTS/img
+
+$(CTS2_FIGURES): scripts/make_figures_cTS2.py scripts/cts_common.py
+	python3 scripts/make_figures_cTS2.py CourseTS/img
 
 Course01/slides.pptx: $(C01_FIGURES)
 Course02/slides.pptx: $(C02_FIGURES)
 Course03/slides.pptx: $(C03_FIGURES)
 Course04/slides.pptx: $(C04_FIGURES)
+CourseTS/slides1.pptx: $(CTS1_FIGURES)
+CourseTS/slides2.pptx: $(CTS2_FIGURES)
 
 %.pptx: %.md scripts/fit_pptx.py
 	pandoc $< -o $@ --slide-level=2 --resource-path=$(dir $<)
@@ -101,4 +134,4 @@ clean-slides:
 	rm -f $(SLIDE_TARGETS)
 
 clean-figures:
-	rm -f $(C01_FIGURES) $(C02_FIGURES) $(C03_FIGURES) $(C04_FIGURES) $(C05_FIGURES)
+	rm -f $(C01_FIGURES) $(C02_FIGURES) $(C03_FIGURES) $(C04_FIGURES) $(CTS1_FIGURES) $(CTS2_FIGURES)
