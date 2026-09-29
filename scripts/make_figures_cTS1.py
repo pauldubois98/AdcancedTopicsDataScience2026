@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from cts_common import (
-    AMBER, BLUE, FAINT, GREEN, GREY, INK, M, N, PURPLE,
+    ljung_box, AMBER, BLUE, FAINT, GREEN, GREY, INK, M, N, PURPLE,
     RED, WIDE, _season, _trend, acf, ar1, arp, arrow, blank, box, corr_stem,
     eq, fit_ar, items, maq, random_walk, save, series, tidy,
 )
@@ -131,18 +131,6 @@ def kpss_stat(y, regression="c", lags=None):
     for j in range(1, lags + 1):
         s2 += 2 * (1 - j / (lags + 1)) * (e[j:] @ e[:-j]) / n
     return (S ** 2).sum() / (n ** 2 * s2), lags
-
-
-def ljung_box(x, mlags=10, k=0):
-    """Ljung-Box Q, its degrees of freedom and p-value."""
-    from scipy.stats import chi2
-    x = np.asarray(x, float)
-    n = len(x)
-    r = acf(x, mlags)
-    h = np.arange(1, mlags + 1)
-    q = n * (n + 2) * np.sum(r[1:] ** 2 / (n - h))
-    df = max(mlags - k, 1)
-    return q, df, float(chi2.sf(q, df))
 
 
 def _tricube(u):

@@ -242,3 +242,14 @@ def fit_ar(x, p):
     y = x[p:]
     beta, *_ = np.linalg.lstsq(X, y, rcond=None)
     return beta[0], beta[1:], y - X @ beta
+
+def ljung_box(x, mlags=10, k=0):
+    """Ljung-Box Q, its degrees of freedom and p-value."""
+    from scipy.stats import chi2
+    x = np.asarray(x, float)
+    n = len(x)
+    r = acf(x, mlags)
+    h = np.arange(1, mlags + 1)
+    q = n * (n + 2) * np.sum(r[1:] ** 2 / (n - h))
+    df = max(mlags - k, 1)
+    return q, df, float(chi2.sf(q, df))
