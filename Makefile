@@ -83,15 +83,12 @@ CTS1_STEMS := ts_zoo iid_broken components eq_decomposition add_vs_mult \
              ljung_box_recipe
 
 # CourseTS part 2 (forecasting and learning): scripts/make_figures_cTS2.py
-CTS2_STEMS := forecast_task baselines naive_strong metrics eq_mase \
-             backtest cv_wrong intervals ar_process ma_process eq_arima \
-             arima_pipeline sarima box_jenkins aic_bic residual_diag \
-             arima_limits prophet_model prophet_trend fourier_seasonality \
-             prophet_events prophet_vs_arima supervised_reframe \
-             lag_features direct_recursive ts_leakage global_models \
-             extrapolation euclidean_fail dtw_idea eq_dtw dtw_matrix \
-             dtw_constraints knn_dtw feature_pipeline feature_zoo \
-             tsfresh_flow multiple_testing rocket method_map
+CTS2_STEMS := forecast_task baselines naive_def naive_strong metrics \
+             eq_mase backtest cv_wrong intervals arma_recap \
+             arima_intuition eq_arima arima_pipeline sarima_problem sarima \
+             box_jenkins ic_motivation aic_bic residual_diag arimax \
+             arima_limits prophet_model prophet_trend prophet_shrinkage \
+             fourier_seasonality prophet_events prophet_vs_arima
 
 CTS1_FIGURES := $(foreach f,$(CTS1_STEMS),CourseTS/img/$(f).png)
 CTS2_FIGURES := $(foreach f,$(CTS2_STEMS),CourseTS/img/$(f).png)
