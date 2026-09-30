@@ -908,7 +908,8 @@ def fig_prophet_model(out: Path) -> None:
 
 def fig_prophet_trend(out: Path) -> None:
     """Piecewise linear with changepoints, plus the saturating alternative."""
-    fig, axes = plt.subplots(1, 3, figsize=WIDE)
+    # fig, axes = plt.subplots(1, 3, figsize=WIDE)
+    fig, axes = plt.subplots(1, 2, figsize=WIDE)
     t = np.arange(300, dtype=float)
     rng = np.random.default_rng(21)
     cps = [80, 170, 240]
@@ -940,19 +941,79 @@ def fig_prophet_trend(out: Path) -> None:
         ("$\\tau$ is the flexibility dial", "large $\\tau$ overfits, small $\\tau$ underfits"),
     ], top=0.70, step=0.18)
 
-    ax = axes[2]
-    tt = np.linspace(0, 300, 300)
-    C = 40.0
-    k = 0.035
-    sat = C / (1 + np.exp(-k * (tt - 130)))
-    ax.plot(tt, sat, color=PURPLE, lw=2.6)
-    ax.axhline(C, color=RED, lw=1.4, ls="--")
-    ax.text(5, C + 1, "capacity $C$ — you must supply it", color=RED, fontsize=11)
-    ax.set_ylim(0, C * 1.2)
-    ax.set_title("logistic growth:\nfor a series with a known ceiling", fontsize=12)
-    tidy(ax, "t")
+    # ax = axes[2]
+    # tt = np.linspace(0, 300, 300)
+    # C = 40.0
+    # k = 0.035
+    # sat = C / (1 + np.exp(-k * (tt - 130)))
+    # ax.plot(tt, sat, color=PURPLE, lw=2.6)
+    # ax.axhline(C, color=RED, lw=1.4, ls="--")
+    # ax.text(5, C + 1, "capacity $C$ — you must supply it", color=RED, fontsize=11)
+    # ax.set_ylim(0, C * 1.2)
+    # ax.set_title("logistic growth:\nfor a series with a known ceiling", fontsize=12)
+    # tidy(ax, "t")
     fig.tight_layout()
     save(fig, out, "prophet_trend")
+
+
+def fig_prophet_trend_eq(out: Path) -> None:
+    """The piecewise-linear trend written out, including the join-up term."""
+    k, m, sj, dj = 0.05, 10.0, 120.0, 0.18
+    t = np.arange(0, 300, dtype=float)
+    a = (t >= sj).astype(float)
+    g_no = (k + a * dj) * t + m
+    g_yes = (k + a * dj) * t + (m + a * (-sj * dj))
+
+    fig, axes = plt.subplots(1, 3, figsize=WIDE)
+
+    ax = axes[0]
+    blank(ax)
+    ax.text(0.5, 0.975,
+            r"$g(t) = \left(k + \mathbf{a}(t)^{\top}\boldsymbol{\delta}\right)\, t"
+            r" + \left(m + \mathbf{a}(t)^{\top}\boldsymbol{\gamma}\right)$",
+            ha="center", fontsize=14, color=BLUE)
+    ax.text(0.5, 0.835, r"$a_j(t) = \mathbb{1}\left[\, t \geq s_j \,\right]$",
+            ha="center", fontsize=14, color=PURPLE)
+    ax.text(0.5, 0.715, "\"has changepoint $j$ happened yet?\"", ha="center",
+            fontsize=10, color=GREY)
+    items(ax, [
+        (r"$k$", "base growth rate"),
+        (r"$\delta_j$", "growth rate change at $s_j$"),
+        (r"$m$", "base offset"),
+        (r"$\gamma_j$", "offset change at $s_j$"),
+    ], top=0.545, step=0.12, fs=12)
+    ax.text(0.5, 0.02, "First bracket correspond to growth rate ; second bracket to offset.",
+            ha="center", fontsize=10.5, color=INK)
+
+    ax = axes[1]
+    ax.step(t, a, color=PURPLE, lw=2.4, where="post")
+    ax.axvline(sj, color=GREY, lw=1.2, ls=":")
+    ax.set_ylim(-0.15, 1.35)
+    ax.set_yticks([0, 1])
+    ax.set_xlabel("t")
+    ax.set_ylabel(r"$a_j(t)$")
+    ax.set_title(r"$\mathbf{a}(t)$ is just a switch per changepoint"
+                 "\nthe rate becomes $k + \\delta_j$ after $s_j$", fontsize=11.5,
+                 color=PURPLE)
+    ax.text(sj + 6, 0.5, r"$s_j$", fontsize=12, color=GREY)
+
+    ax = axes[2]
+    ax.plot(t, g_no, color=RED, lw=2.2, label=r"without $\gamma$")
+    ax.plot(t, g_yes, color=GREEN, lw=2.2, label=r"with $\gamma_j = -s_j \delta_j$")
+    ax.axvline(sj, color=GREY, lw=1.2, ls=":")
+    ax.annotate("", xy=(sj, g_no[int(sj)]), xytext=(sj, g_yes[int(sj)]),
+                arrowprops=dict(arrowstyle="<->", color=INK, lw=1.6))
+    ax.text(sj - 6, (g_no[int(sj)] + g_yes[int(sj)]) / 2,
+            f"jump of\n$s_j\\,\\delta_j$ = {sj * dj:.1f}", ha="right", fontsize=10.5,
+            va="center", linespacing=1.4)
+    ax.set_ylim(None, g_no.max() * 1.12)
+    ax.legend(frameon=False, fontsize=10.5, loc="upper left")
+    ax.set_xlabel("t")
+    ax.set_title(r"$\gamma$ allows jumps", fontsize=11.5)
+    # fig.suptitle(r"changing the slope also moves the line, so each $\delta_j$ needs "
+    #              r"a matching $\gamma_j$", fontsize=13)
+    fig.tight_layout()
+    save(fig, out, "prophet_trend_eq")
 
 
 def _changepoint_demo():
@@ -987,6 +1048,113 @@ def _cp_fit(X, y, alpha):
     return m.coef_[2:], X @ m.coef_
 
 
+def fig_laplace_prior(out: Path) -> None:
+    """What Laplace(0, tau) is, and why its log has a corner at zero."""
+    from scipy.stats import norm, laplace
+    d = np.linspace(-3, 3, 1001)
+
+    fig, axes = plt.subplots(1, 2, figsize=WIDE)
+
+    ax = axes[0]
+    for tau, col in ((0.25, RED), (0.6, PURPLE), (1.5, BLUE)):
+        ax.plot(d, laplace.pdf(d, 0, tau), color=col, lw=2.4,
+                label=rf"$\tau$ = {tau}")
+    ax.legend(frameon=False, fontsize=11)
+    ax.set_xlabel(r"$\delta$")
+    ax.set_yticks([])
+    ax.set_title(r"Laplace$(0, \tau)$:  $p(\delta) \propto e^{-|\delta| / \tau}$"
+                 "\n\"a sharp peak at zero\"", fontsize=12, color=PURPLE)
+    ax.text(0.03, 0.55, "small $\\tau$ $\\equiv$ \"expect zero\"",
+            transform=ax.transAxes, fontsize=10.5, color=INK, linespacing=1.4)
+
+    ax = axes[1]
+    ax.plot(d, laplace.pdf(d, 0, 0.7), color=PURPLE, lw=2.6, label="Laplace")
+    ax.plot(d, norm.pdf(d, 0, 0.7), color=GREY, lw=2.6, ls="--", label="Gaussian")
+    ax.legend(frameon=False, fontsize=11)
+    ax.set_xlabel(r"$\delta$")
+    ax.set_yticks([])
+    ax.set_title("against a Gaussian of the same width", fontsize=12)
+    ax.text(0.03, 0.62, "more mass at exactly\nzero, and fatter tails",
+            transform=ax.transAxes, fontsize=10.5, color=INK, linespacing=1.4)
+
+    fig.tight_layout()
+    save(fig, out, "laplace_prior")
+
+
+def fig_map_example(out: Path) -> None:
+    """MAP with a Laplace prior, worked through: it is soft-thresholding."""
+    from scipy.stats import norm, laplace
+    sigma, tau = 0.5, 0.6
+    lam = sigma ** 2 / tau
+    grid = np.linspace(-3, 4, 40001)
+
+    def numeric_map(mle):
+        post = norm.pdf(grid, mle, sigma) * laplace.pdf(grid, 0, tau)
+        return grid[int(post.argmax())]
+
+    cases = [2.00, 1.00, 0.35, -0.90]
+
+    fig, axes = plt.subplots(1, 3, figsize=WIDE)
+
+    ax = axes[0]
+    blank(ax)
+    ax.text(0.5, 0.975, "For each changepoint:", ha="center",
+            fontsize=13, color=INK)
+    steps = [
+        ("1.", "data:", r"$\hat\delta \pm \sigma$,  here $\sigma = 0.5$"),
+        ("2.", "prior:", r"$\delta \sim$ Laplace$(0, \tau)$,  $\tau = 0.6$"),
+        ("3.", "multiply & take minus the log",
+         r"$(\delta - \hat\delta)^2 / 2\sigma^2 \;+\; |\delta| / \tau$"),
+        ("4.", "minimise", "(it has a closed form)"),
+    ]
+    for i, (num, title, detail) in enumerate(steps):
+        yy = 0.845 - i * 0.145
+        ax.text(0.04, yy, num, fontsize=13.5, color=BLUE, fontweight="bold",
+                va="center")
+        ax.text(0.11, yy + 0.025, title, fontsize=11.5, color=INK, va="center")
+        if detail:
+            ax.text(0.11, yy - 0.035, detail, fontsize=11.5, color=BLUE,
+                    va="center")
+    ax.text(0.5, 0.235, r"$\hat\delta_{\mathrm{MAP}} = \mathrm{sign}(\hat\delta)\,"
+                        r"\max\left(|\hat\delta| - \lambda,\; 0\right)$",
+            ha="center", fontsize=14, color=GREEN)
+    
+    ax = axes[1]
+    xs = np.linspace(-3, 3, 601)
+    ax.plot(xs, xs, color=GREY, lw=1.6, ls=":", label=r"no prior ($\hat\delta$)")
+    ax.plot(xs, np.sign(xs) * np.maximum(np.abs(xs) - lam, 0), color=GREEN, lw=2.8,
+            label="MAP")
+    ax.axvspan(-lam, lam, color=RED, alpha=0.18, lw=0)
+    ax.axhline(0, color=GREY, lw=0.9)
+    ax.legend(frameon=False, fontsize=10.5, loc="upper left")
+    ax.set_xlabel(r"what the data says,  $\hat\delta$")
+    ax.set_ylabel(r"what MAP keeps,  $\hat\delta_{\mathrm{MAP}}$")
+    ax.set_title("soft-thresholding", fontsize=12, color=GREEN)
+    ax.text(0.5, 0.08, rf"dead zone: $|\hat\delta| < {lam:.2f}$" "\nbecomes zero",
+            transform=ax.transAxes, ha="center", fontsize=10, color=RED,
+            linespacing=1.4)
+
+    ax = axes[2]
+    blank(ax)
+    ax.text(0.5, 0.975, "Changepoint candidates", ha="center", fontsize=13)
+    heads = [(r"$\hat\delta$", 0.13), ("MAP", 0.38)]
+    for txt, x in heads:
+        ax.text(x, 0.845, txt, ha="center", fontsize=11, color=GREY)
+    for i, mle in enumerate(cases):
+        num = numeric_map(mle)
+        soft = np.sign(mle) * max(abs(mle) - lam, 0.0)
+        col = RED if abs(soft) < 1e-9 else GREEN
+        yy = 0.715 - i * 0.135
+        ax.text(0.13, yy, f"{mle:+.2f}", ha="center", fontsize=12.5, va="center")
+        ax.text(0.38, yy, f"{num:+.3f}", ha="center", fontsize=12.5, va="center",
+                color=col)
+        if abs(soft) < 1e-9:
+            ax.text(0.64, yy, "killed", ha="right", fontsize=10, color=RED, va="center")
+    fig.suptitle(r"MAP with a Laplace prior has a closed form: it is a threshold", fontsize=13)
+    fig.tight_layout()
+    save(fig, out, "map_example")
+
+
 def fig_prophet_shrinkage(out: Path) -> None:
     """How the changepoints are shrunk, and what the flexibility dial does."""
     t, y, g, cps_true, cand, X = _changepoint_demo()
@@ -997,22 +1165,14 @@ def fig_prophet_shrinkage(out: Path) -> None:
 
     ax = axes[0]
     blank(ax)
-    ax.text(0.5, 0.985, "how the changepoints are chosen", ha="center",
-            fontsize=13, color=INK)
-    ax.text(0.5, 0.885, "Prophet never searches for them", ha="center",
-            fontsize=11.5, color=RED)
-    ax.text(0.5, 0.665, "it lays down 25 candidates over the\n"
-                        "first 80% of the history, and gives\n"
+    ax.text(0.5, 0.665, "Prophet lays down 25 candidates changepoints\n"
+                        "over the first 80% of the history, and gives\n"
                         r"each one a slope change $\delta_j$",
-            ha="center", fontsize=10.5, color=INK, linespacing=1.6)
-    ax.text(0.5, 0.475, r"$\delta_j \;\sim\; \mathrm{Laplace}(0,\, \tau)$",
-            ha="center", fontsize=16, color=PURPLE)
-    box(ax, (0.5, 0.255), 0.96, 0.215,
-        "the MAP under that prior is an\n"
-        r"$L_1$ penalty on the $\delta$s, and $L_1$" + "\n"
-        "sets most of them to EXACTLY zero", ec=PURPLE, fs=11)
-    ax.text(0.5, 0.035, r"$\tau$ is the flexibility dial", ha="center",
-            fontsize=13, color=GREEN)
+            ha="center", fontsize=13, color=INK, linespacing=1.6)
+    ax.text(0.5, 0.45, r"$\delta_j \;\sim\; \mathrm{Laplace}(0,\, \tau)$",
+            ha="center", fontsize=13, color=PURPLE)
+    ax.text(0.5, 0.25, "Penalty on the $\\delta$s sets\nmost of them to EXACTLY zero", ha="center", fontsize=13, color=PURPLE)
+    ax.text(0.5, 0.025, r"$\tau$ is the flexibility dial", ha="center", fontsize=13, color=GREEN)
 
     ax = axes[1]
     ax.axhline(0, color=GREY, lw=1.0)
@@ -1024,7 +1184,7 @@ def fig_prophet_shrinkage(out: Path) -> None:
     ax.set_xlabel("candidate changepoint")
     ax.set_ylabel(r"fitted $\delta_j$")
     ax.set_title(f"at $\\tau$ = {mid}: {kept} of 25 survive\n"
-                 "dashed green = the real breaks", fontsize=11.5)
+                 "dashed green are real breaks", fontsize=11.5)
     ax.text(0.97, 0.05, "the rest are exactly zero", transform=ax.transAxes,
             ha="right", fontsize=10, color=PURPLE)
 
@@ -1036,12 +1196,12 @@ def fig_prophet_shrinkage(out: Path) -> None:
         k = int((np.abs(d) > 1e-4).sum())
         ax.plot(t, fit, color=col, lw=2.2,
                 label=rf"$\tau$ = {alpha}: {k} kept  ({lab})")
-    ax.legend(frameon=False, fontsize=9.5, loc="upper left")
+    ax.legend(frameon=False, fontsize=9.5, loc="lower right")
     ax.set_xlabel("t")
     ax.set_title("small $\\tau$ forces a straight trend,\n"
                  "large $\\tau$ lets it chase the noise", fontsize=11.5)
-    fig.suptitle(r"the changepoint prior scale $\tau$ is one number that decides "
-                 "how bendy the trend may be", fontsize=13)
+    # fig.suptitle(r"the changepoint prior scale $\tau$ is one number that decides "
+    #              "how bendy the trend may be", fontsize=13)
     fig.tight_layout()
     save(fig, out, "prophet_shrinkage")
 
@@ -1075,9 +1235,9 @@ def fig_fourier_seasonality(out: Path) -> None:
             ha="center", fontsize=12, color=INK, linespacing=1.5)
 
     ax = axes[1]
-    ax.plot(t, target, color=GREY, lw=5, label="true shape")
+    ax.plot(t, target, '--', color=GREY, lw=5, label="true shape")
     for K, col in [(1, RED), (3, AMBER), (10, GREEN)]:
-        ax.plot(t, fourier_fit(K), color=col, lw=1.8, label=f"K = {K}")
+        ax.plot(t, fourier_fit(K), color=col, lw=1, label=f"K = {K}")
     ax.legend(frameon=False, fontsize=10.5, ncol=2)
     ax.set_title("K$ is a smoothness dial", fontsize=12.5)
     ax.set_xlabel("$t$ (in periods)")
@@ -1179,6 +1339,9 @@ FIGURES = (
     fig_arima_limits,
     fig_prophet_model,
     fig_prophet_trend,
+    fig_prophet_trend_eq,
+    fig_laplace_prior,
+    fig_map_example,
     fig_prophet_shrinkage,
     fig_fourier_seasonality,
     fig_prophet_events,
