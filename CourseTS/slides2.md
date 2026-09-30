@@ -101,9 +101,21 @@ date: "Week 5 — Lecture"
 
 ![](img/prophet_model.png)
 
-## Trend and changepoints
+## Trend via changepoints
 
 ![](img/prophet_trend.png)
+
+## Trend formula
+
+![](img/prophet_trend_eq.png)
+
+## The Laplace prior
+
+![](img/laplace_prior.png)
+
+## MAP
+
+![](img/map_example.png)
 
 ## Shrinking the changepoints
 
