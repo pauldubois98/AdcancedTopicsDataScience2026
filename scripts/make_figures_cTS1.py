@@ -1465,7 +1465,7 @@ def fig_adf_test(out: Path) -> None:
         (r"only the $\delta_j$ are new", "everything else is the plain DF"),
         (r"$\gamma$ still answers the question", "same $H_0$, same one-sided test"),
         ("the null distribution is unchanged", "the same Dickey-Fuller table"),
-        (r"choose $p$ by Akaike Information Criterion,\nor Schwert's rule", ""),
+        ("choose $p$ by Akaike Information Criterion,\nor Schwert's rule", ""),
         #  r"$p = \lceil 12\,(n/100)^{1/4} \rceil$"),
     ], top=0.545, step=0.125)
     fig.tight_layout()
@@ -2364,8 +2364,7 @@ def fig_ljung_box_recipe(out: Path) -> None:
 
     ax = fig.add_subplot(gs[0, 0])
     blank(ax)
-    ax.text(0.5, 0.965, "Ljung-Box test", ha="center", fontsize=13.5,
-            color=GREEN)
+    # ax.text(0.5, 0.965, "Ljung-Box test", ha="center", fontsize=13.5, color=GREEN)
     steps = [
         ("1.", "fit the model, keep the residuals", INK,
          "never run it on the raw series"),
