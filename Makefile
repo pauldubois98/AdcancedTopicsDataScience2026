@@ -87,7 +87,7 @@ CTS2_STEMS := forecast_task baselines naive_def naive_strong metrics \
              eq_mase backtest cv_wrong intervals arma_recap \
              arima_intuition eq_arima arima_pipeline sarima_problem sarima \
              box_jenkins ic_motivation aic_bic residual_diag arimax \
-             arima_limits prophet_model prophet_trend prophet_shrinkage \
+             arima_limits prophet_model prophet_trend prophet_trend_eq map_estimation laplace_prior map_example prophet_shrinkage \
              fourier_seasonality prophet_events prophet_vs_arima
 
 CTS1_FIGURES := $(foreach f,$(CTS1_STEMS),CourseTS/img/$(f).png)
