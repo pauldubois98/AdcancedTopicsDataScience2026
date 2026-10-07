@@ -35,3 +35,10 @@ Each week has a **lecture** (2.5h, slides/code along) and a **recitation** (1.5h
     - Slides ([pptx](Course05/slides.pptx))
     - [Notebook — Numpy to PyTorch](Course05/numpy_to_torch.ipynb)
     - [Notebook class — Numpy to PyTorch](Course05/numpy_to_torch-class.ipynb)
+    - [Notebook solutions — Numpy to PyTorch](Course05/numpy_to_torch-solutions.ipynb)
+- Session 5 bis: Time Series
+    - Slides ([pptx](CourseTS/slides1.pptx))
+- Session 6: Evaluating clinical prediction models
+    - Slides ([md](Course06/slides.md) / [pptx](Course06/slides.pptx))
+    - [Notebook — PyTorch practice](Course06/pytorch_practice.ipynb)
+
