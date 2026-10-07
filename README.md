@@ -41,4 +41,5 @@ Each week has a **lecture** (2.5h, slides/code along) and a **recitation** (1.5h
 - Session 6: Evaluating clinical prediction models
     - Slides ([md](Course06/slides.md) / [pptx](Course06/slides.pptx))
     - [Notebook — PyTorch practice](Course06/pytorch_practice.ipynb)
-
+    - [Notebook class — PyTorch practice](Course06/pytorch_practice-solutions.ipynb.ipynb)
+    - [Notebook solutions — PyTorch practice](Course06/pytorch_practice-solutions.ipynb.ipynb)
