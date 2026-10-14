@@ -51,4 +51,6 @@ Each week has a **lecture** (2.5h, slides/code along) and a **recitation** (1.5h
     - Slides([pptx](Course07/slides.pptx))
     - [Live proof](https://pauldubois98.github.io/NeuralNetworkLiveProof)
     - [Notebook — Width vs Depth](Course07/width_vs_depth.ipynb)
+    - [Notebook class — Width vs Depth](Course07/width_vs_depth-class.ipynb)
+    - [Notebook solutions — Width vs Depth](Course07/width_vs_depth-solutions.ipynb)
     - [Kaggle: 1D -> 1D](https://www.kaggle.com/competitions/nyu-2026-fitting-a-1-d-1-d-function-with-deep-learning)
