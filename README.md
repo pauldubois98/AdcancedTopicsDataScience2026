@@ -61,3 +61,6 @@ Each week has a **lecture** (2.5h, slides/code along) and a **recitation** (1.5h
 - Session 09: Linear vs Convolutional
     - Slides([pptx](Course09/slides.pptx))
     - [Notebook — Linear vs Convolutional](Course09/linear_vs_conv.ipynb)
+- Session 10: Recurrent Neural Networks
+    - Slides([pptx](Course10/slides.pptx))
+    - [Notebook — Predicting the next word with an RNN](Course10/rnn_next_word.ipynb)
