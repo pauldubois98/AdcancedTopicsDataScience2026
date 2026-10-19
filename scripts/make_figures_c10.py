@@ -355,7 +355,8 @@ def fig_lstm_intuition(out: Path) -> None:
         arrow(ax, (a + 0.055, 0.55), (b - 0.055, 0.55), color=INK)
         ax.text(m, 0.68, r"$\times W_{hh}$" "\n" r"$\tanh$", ha="center", fontsize=12,
                 color=RED)
-    ax.text(0.5, 0.25, "The gradient is multiplied by $W_{hh}$ and $\tanh'$ at every step", ha="center", fontsize=12.5, va="top")
+    ax.text(0.5, 0.25, r"The gradient is multiplied by $W_{hh}$ and $\tanh'$ at every step",
+            ha="center", fontsize=12.5, va="top")
 
     ax = axes[1]
     blank(ax)
@@ -365,9 +366,9 @@ def fig_lstm_intuition(out: Path) -> None:
     ax.text(0.03, 0.62, "memory c", fontsize=12.5, color=GREEN)
     for x in (0.25, 0.55, 0.85):
         _op(ax, (x - 0.06, 0.55), "×", AMBER)
-        _op(ax, (x + 0.04, 0.55), "+", BLUE)
+        _op(ax, (x + 0.04, 0.55), "+", PURPLE)
         ax.text(x - 0.06, 0.43, "erase", ha="center", fontsize=11, color=AMBER)
-        ax.text(x + 0.04, 0.43, "write", ha="center", fontsize=11, color=BLUE)
+        ax.text(x + 0.04, 0.43, "write", ha="center", fontsize=11, color=PURPLE)
     ax.text(0.5, 0.25, "the memory is carried along"
             , ha="center", fontsize=12.5, va="top")
     save(fig, out, "lstm_intuition")
@@ -391,7 +392,7 @@ def fig_gates(out: Path) -> None:
     vec = [2.0, -1.3, 0.7, 3.1]
     gate = [0.98, 0.02, 0.50, 0.95]
     words = ["keep", "erase", "half", "keep"]
-    cols = [("memory", vec, INK, 0.12), ("gate", gate, AMBER, 0.40),
+    cols = [("memory", vec, GREEN, 0.12), ("gate", gate, AMBER, 0.40),
             ("result", [v * g for v, g in zip(vec, gate)], GREEN, 0.68)]
     for name, vals, col, x in cols:
         ax.text(x + 0.06, 0.92, name, ha="center", fontsize=12.5, color=col)
@@ -406,79 +407,173 @@ def fig_gates(out: Path) -> None:
     save(fig, out, "gates")
 
 
+# colour meaning shared by every gated-cell figure (diagrams and equations)
+C_MEM, C_STATE, C_IN, C_GATE, C_CAND = GREEN, BLUE, GREY, AMBER, PURPLE
+CELL_LEGEND = ((C_MEM, "memory line (c)"), (C_STATE, "hidden state h"),
+               (C_IN, "input x"), (C_GATE, "gate σ ∈ (0, 1)"),
+               (C_CAND, "candidate new content"))
+
+
+def _radius(ax, size):
+    """Radius of an `_op` node of marker size `size`, in axes units (x, y)."""
+    bbox = ax.get_window_extent()
+    r = size / 2 * ax.figure.dpi / 72
+    return r / bbox.width, r / bbox.height
+
+
+def _legend(ax, x, y, step=0.075, fs=11.5):
+    for k, (col, txt) in enumerate(CELL_LEGEND):
+        ax.plot([x, x + 0.05], [y - step * k] * 2, color=col, lw=3,
+                solid_capstyle="round")
+        ax.text(x + 0.07, y - step * k, txt, fontsize=fs, va="center")
+
+
+def _cell_frame(ax, title=None, fs=1.0):
+    blank(ax)
+    ax.add_patch(FancyBboxPatch((0.12, 0.08), 0.76, 0.84, boxstyle="round,pad=0.01",
+                                fc="#f7f8fa", ec=GREY, lw=1.2))
+    if title:
+        ax.set_title(title, fontsize=14 * fs)
+
+
+def _gate_box(ax, x, y, label, name, col, fs, h=0.1):
+    box(ax, (x, y), 0.07, h, label, ec=col, fs=12 * fs)
+    ax.text(x + 0.042, y + h / 2 + 0.015, name, fontsize=13 * fs, color=col)
+
+
+def _lstm_diagram(ax, fs=1.0, title=None):
+    """The LSTM cell drawn in axes units, with the colour meaning of CELL_LEGEND."""
+    _cell_frame(ax, title, fs)
+    size = 22 * fs
+    dx, dy = _radius(ax, size)
+    top, mid, gy, bus = 0.80, 0.60, 0.40, 0.18
+    xf, xi, xc, xo, xout = 0.30, 0.42, 0.54, 0.66, 0.78
+    # memory line: erase (× f), then write (+ i × candidate)
+    ax.text(0.065, top, r"$c_{t-1}$", fontsize=15 * fs, va="center", ha="right", color=C_MEM)
+    arrow(ax, (0.07, top), (xf - dx, top), color=C_MEM, lw=2.6)
+    _op(ax, (xf, top), "×", C_GATE, size)
+    arrow(ax, (xf + dx, top), ((xi + xc) / 2 - dx, top), color=C_MEM, lw=2.6)
+    _op(ax, ((xi + xc) / 2, top), "+", C_CAND, size)
+    arrow(ax, ((xi + xc) / 2 + dx, top), (0.94, top), color=C_MEM, lw=2.6)
+    ax.text(0.95, top, r"$c_t$", fontsize=15 * fs, va="center", color=C_MEM)
+    # inputs: h_{t-1} and x_t feed the four boxes
+    ax.text(0.065, bus, r"$h_{t-1}$", fontsize=15 * fs, va="center", ha="right",
+            color=C_STATE)
+    ax.plot([0.07, 0.20], [bus, bus], color=C_STATE, lw=1.8)
+    ax.plot([0.20, xo], [bus, bus], color=INK, lw=1.8)
+    ax.text(0.20, 0.0, r"$x_t$", fontsize=15 * fs, ha="center", va="bottom", color=C_IN)
+    arrow(ax, (0.20, 0.06), (0.20, bus), color=C_IN, lw=1.8)
+    for x, lab, name, col in ((xf, r"$\sigma$", "f", C_GATE), (xi, r"$\sigma$", "i", C_GATE),
+                              (xc, "tanh", r"$\tilde c$", C_CAND),
+                              (xo, r"$\sigma$", "o", C_GATE)):
+        arrow(ax, (x, bus), (x, gy - 0.055), color=INK)
+        _gate_box(ax, x, gy, lab, name, col, fs)
+    arrow(ax, (xf, gy + 0.05), (xf, top - dy), color=C_GATE)
+    xw = (xi + xc) / 2
+    _op(ax, (xw, mid), "×", C_GATE, size)
+    arrow(ax, (xi, gy + 0.05), (xw - dx * 0.8, mid - dy * 0.6), color=C_GATE)
+    arrow(ax, (xc, gy + 0.05), (xw + dx * 0.8, mid - dy * 0.6), color=C_CAND)
+    arrow(ax, (xw, mid + dy), (xw, top - dy), color=C_CAND)
+    # output: h_t = o × tanh(c_t)
+    tsize = 30 * fs
+    tdx, tdy = _radius(ax, tsize)
+    ax.plot([xout, xout], [top, mid + tdy], color=C_MEM, lw=1.8)
+    _op(ax, (xout, mid), "tanh", C_MEM, tsize)
+    _op(ax, (xout, gy), "×", C_GATE, size)
+    arrow(ax, (xout, mid - tdy), (xout, gy + dy), color=C_MEM)
+    arrow(ax, (xo + 0.035, gy), (xout - dx, gy), color=C_GATE)
+    arrow(ax, (xout + dx, gy), (0.94, gy), color=C_STATE, lw=2.2)
+    ax.text(0.95, gy, r"$h_t$", fontsize=15 * fs, va="center", color=C_STATE)
+
+
+def _gru_diagram(ax, fs=1.0, title=None):
+    """The GRU cell, on the same frame and colours as `_lstm_diagram`."""
+    _cell_frame(ax, title, fs)
+    size = 22 * fs
+    dx, dy = _radius(ax, size)
+    top, mid, gy, bus = 0.80, 0.56, 0.36, 0.18
+    xz, xr, xm, xc = 0.30, 0.42, 0.54, 0.66
+    # the state is the memory line: keep (1 − z) of it, write z × candidate
+    ax.text(0.065, top, r"$h_{t-1}$", fontsize=15 * fs, va="center", ha="right", color=C_MEM)
+    arrow(ax, (0.07, top), (xz - dx, top), color=C_MEM, lw=2.6)
+    _op(ax, (xz, top), "×", C_GATE, size)
+    arrow(ax, (xz + dx, top), (xc - dx, top), color=C_MEM, lw=2.6)
+    _op(ax, (xc, top), "+", C_CAND, size)
+    arrow(ax, (xc + dx, top), (0.94, top), color=C_MEM, lw=2.6)
+    ax.text(0.95, top, r"$h_t$", fontsize=15 * fs, va="center", color=C_MEM)
+    # inputs: h_{t-1} goes down to feed the gates, with x_t
+    ax.plot([0.14, 0.14], [top, bus], color=C_STATE, lw=1.8)
+    ax.plot([0.14, 0.20], [bus, bus], color=C_STATE, lw=1.8)
+    ax.plot([0.20, xc], [bus, bus], color=INK, lw=1.8)
+    ax.text(0.20, 0.0, r"$x_t$", fontsize=15 * fs, ha="center", va="bottom", color=C_IN)
+    arrow(ax, (0.20, 0.06), (0.20, bus), color=C_IN, lw=1.8)
+    for x, lab, name, col in ((xz, r"$\sigma$", "z", C_GATE), (xr, r"$\sigma$", "r", C_GATE),
+                              (xc, "tanh", r"$\tilde h$", C_CAND)):
+        arrow(ax, (x, bus), (x, gy - 0.055), color=INK)
+        _gate_box(ax, x, gy, lab, name, col, fs)
+    # reset: the candidate sees r × h_{t-1}
+    _op(ax, (xm, gy), "×", C_GATE, size)
+    arrow(ax, (xm, bus), (xm, gy - dy), color=C_STATE)
+    arrow(ax, (xr + 0.035, gy), (xm - dx, gy), color=C_GATE)
+    arrow(ax, (xm + dx, gy), (xc - 0.035, gy), color=INK)
+    # update: z goes to "1 −" (keep) and to the write ×
+    ax.plot([xz, xz], [gy + 0.05, mid], color=C_GATE, lw=1.8)
+    nsize = 28 * fs
+    ndx, ndy = _radius(ax, nsize)
+    ymin = (mid + top) / 2 + 0.02
+    _op(ax, (xz, ymin), "1−", C_GATE, nsize)
+    arrow(ax, (xz, mid), (xz, ymin - ndy), color=C_GATE)
+    arrow(ax, (xz, ymin + ndy), (xz, top - dy), color=C_GATE)
+    ax.plot([xz, xm + 0.04], [mid, mid], color=C_GATE, lw=1.8)
+    _op(ax, (xc, mid), "×", C_GATE, size)
+    arrow(ax, (xm + 0.04, mid), (xc - dx, mid), color=C_GATE)
+    arrow(ax, (xc, gy + 0.05), (xc, mid - dy), color=C_CAND)
+    arrow(ax, (xc, mid + dy), (xc, top - dy), color=C_CAND)
+
+
 def fig_lstm_cell(out: Path) -> None:
     """The LSTM cell: a memory line, edited by three gates."""
-    fig, ax = plt.subplots(figsize=WIDE)
+    fig, axes = plt.subplots(1, 2, figsize=WIDE, gridspec_kw={"width_ratios": [2.3, 1]})
+    _lstm_diagram(axes[0])
+    ax = axes[1]
     blank(ax)
-    ax.add_patch(FancyBboxPatch((0.12, 0.08), 0.58, 0.84, boxstyle="round,pad=0.01",
-                                fc="#f7f8fa", ec=GREY, lw=1.2))
-    top, bus, gy = 0.80, 0.18, 0.42
-    dx, dy = 0.018, 0.042  # radius of an operation node, in axes units
-    # memory line
-    ax.text(0.02, top, r"$c_{t-1}$", fontsize=15, va="center", color=GREEN)
-    arrow(ax, (0.07, top), (0.28 - dx, top), color=GREEN, lw=2.6)
-    _op(ax, (0.28, top), "×", AMBER)
-    arrow(ax, (0.28 + dx, top), (0.415 - dx, top), color=GREEN, lw=2.6)
-    _op(ax, (0.415, top), "+", BLUE)
-    arrow(ax, (0.415 + dx, top), (0.76, top), color=GREEN, lw=2.6)
-    ax.text(0.77, top, r"$c_t$", fontsize=15, va="center", color=GREEN)
-    # inputs
-    ax.text(0.02, bus, r"$h_{t-1}$", fontsize=15, va="center")
-    ax.plot([0.07, 0.55], [bus, bus], color=INK, lw=1.6)
-    ax.text(0.18, 0.0, r"$x_t$", fontsize=15, ha="center", va="bottom")
-    arrow(ax, (0.18, 0.05), (0.18, bus), color=INK)
-    # gates
-    gates = ((0.28, r"$\sigma$", "f", AMBER), (0.37, r"$\sigma$", "i", AMBER),
-             (0.46, "tanh", r"$\tilde c$", BLUE), (0.55, r"$\sigma$", "o", AMBER))
-    for x, f, name, col in gates:
-        ax.plot([x, x], [bus, gy - 0.06], color=INK, lw=1.6)
-        box(ax, (x, gy), 0.055, 0.1, f, ec=col, fs=12)
-        ax.text(x + 0.032, gy + 0.065, name, fontsize=13, color=col)
-    arrow(ax, (0.28, gy + 0.05), (0.28, top - dy), color=AMBER)
-    _op(ax, (0.415, 0.62), "×", AMBER)
-    arrow(ax, (0.37, gy + 0.05), (0.415 - dx, 0.62 - dy * 0.6), color=AMBER)
-    arrow(ax, (0.46, gy + 0.05), (0.415 + dx, 0.62 - dy * 0.6), color=BLUE)
-    arrow(ax, (0.415, 0.62 + dy), (0.415, top - dy), color=BLUE)
-    # output
-    ax.plot([0.64, 0.64], [top, 0.62 + dy * 1.3], color=GREEN, lw=1.6)
-    _op(ax, (0.64, 0.62), "tanh", GREEN, size=30)
-    _op(ax, (0.64, gy), "×", AMBER)
-    arrow(ax, (0.64, 0.62 - dy * 1.3), (0.64, gy + dy), color=GREEN)
-    arrow(ax, (0.5775, gy), (0.64 - dx, gy), color=AMBER)
-    arrow(ax, (0.64 + dx, gy), (0.76, gy), color=INK, lw=2.0)
-    ax.text(0.77, gy, r"$h_t$", fontsize=15, va="center")
-    # legend
+    _legend(ax, 0.02, 0.92)
     for k, (name, txt, col) in enumerate((
-            ("f", "forget gate: what to erase", AMBER),
-            ("i", "input gate: what to write", AMBER),
-            (r"$\tilde c$", "candidate: what could be written", BLUE),
-            ("o", "output gate: what to show", AMBER))):
-        ax.text(0.82, 0.30 - 0.07 * k, name, fontsize=13, color=col, va="center")
-        ax.text(0.845, 0.30 - 0.07 * k, txt, fontsize=11, va="center")
+            ("f", "forget gate: what to erase", C_GATE),
+            ("i", "input gate: what to write", C_GATE),
+            (r"$\tilde c$", "candidate: what could be written", C_CAND),
+            ("o", "output gate: what to show", C_GATE))):
+        ax.text(0.02, 0.42 - 0.075 * k, name, fontsize=13, color=col, va="center")
+        ax.text(0.09, 0.42 - 0.075 * k, txt, fontsize=11.5, va="center")
     save(fig, out, "lstm_cell")
 
 
-def fig_lstm_equations(out: Path) -> None:
-    """The LSTM equations, gate by gate."""
-    fig, ax = plt.subplots(figsize=WIDE)
+def fig_gru_cell(out: Path) -> None:
+    """The GRU cell: the state is the memory line, edited by two gates."""
+    fig, axes = plt.subplots(1, 2, figsize=WIDE, gridspec_kw={"width_ratios": [2.3, 1]})
+    _gru_diagram(axes[0])
+    ax = axes[1]
     blank(ax)
-    rows = (("forget gate", AMBER, r"$f_t = \sigma(x_t W_{xf} + h_{t-1} W_{hf} + b_f)$"),
-            ("input gate", AMBER, r"$i_t = \sigma(x_t W_{xi} + h_{t-1} W_{hi} + b_i)$"),
-            ("output gate", AMBER, r"$o_t = \sigma(x_t W_{xo} + h_{t-1} W_{ho} + b_o)$"),
-            ("candidate", BLUE, r"$\tilde c_t = \tanh(x_t W_{xc} + h_{t-1} W_{hc} + b_c)$"),
-            ("memory", GREEN, r"$c_t = f_t \odot c_{t-1} + i_t \odot \tilde c_t$"),
-            ("state", GREEN, r"$h_t = o_t \odot \tanh(c_t)$"))
-    for k, (name, col, eq) in enumerate(rows):
-        y = 0.92 - 0.15 * k
-        ax.text(0.02, y, name, fontsize=13, color=col, va="center")
-        ax.text(0.22, y, eq, fontsize=18 if k < 4 else 20, va="center")
-    ax.text(0.70, 0.92 - 0.15 * 4, "erase & write", fontsize=13, color=GREY,
-            va="center")
-    ax.text(0.70, 0.92 - 0.15 * 5, "hidden state is\npart of the memory", fontsize=13, color=GREY,
-            va="center")
-    ax.text(0.70, 0.92 - 0.15 * 1.0, "4 weight blocks",
-            fontsize=13, color=GREY, va="center")
-    save(fig, out, "lstm_equations")
+    _legend(ax, 0.02, 0.92)
+    for k, (name, txt, col) in enumerate((
+            ("z", "update gate: keep 1 − z, write z", C_GATE),
+            ("r", "reset gate: how much past the candidate sees", C_GATE),
+            (r"$\tilde h$", "candidate: what could be written", C_CAND))):
+        ax.text(0.02, 0.42 - 0.09 * k, name, fontsize=13, color=col, va="center")
+        ax.text(0.09, 0.42 - 0.09 * k, txt, fontsize=11.5, va="center")
+    save(fig, out, "gru_cell")
+
+
+def fig_lstm_vs_gru(out: Path) -> None:
+    """The two cells side by side, same frame, same colours."""
+    fig, axes = plt.subplots(1, 2, figsize=WIDE)
+    _lstm_diagram(axes[0], fs=0.8, title="LSTM: memory c + state h, 3 gates")
+    _gru_diagram(axes[1], fs=0.8, title="GRU: one state, 2 gates")
+    x = 0.08
+    for col, txt in CELL_LEGEND:
+        fig.text(x, 0.0, "━ " + txt, color=col, fontsize=10.5)
+        x += 0.034 + 0.0068 * len(txt)
+    save(fig, out, "lstm_vs_gru")
 
 
 def fig_lstm_to_gru(out: Path) -> None:
@@ -502,24 +597,103 @@ def fig_lstm_to_gru(out: Path) -> None:
     save(fig, out, "lstm_to_gru")
 
 
-def fig_gru(out: Path) -> None:
-    """The GRU: a gate decides how much of the state to keep."""
+LSTM_EQS = (("forget gate", C_GATE, r"$f_t = \sigma(x_t W_{xf} + h_{t-1} W_{hf} + b_f)$"),
+            ("input gate", C_GATE, r"$i_t = \sigma(x_t W_{xi} + h_{t-1} W_{hi} + b_i)$"),
+            ("output gate", C_GATE, r"$o_t = \sigma(x_t W_{xo} + h_{t-1} W_{ho} + b_o)$"),
+            ("candidate", C_CAND,
+             r"$\tilde c_t = \tanh(x_t W_{xc} + h_{t-1} W_{hc} + b_c)$"),
+            ("memory", C_MEM, r"$c_t = f_t \odot c_{t-1} + i_t \odot \tilde c_t$"),
+            ("state", C_STATE, r"$h_t = o_t \odot \tanh(c_t)$"))
+
+GRU_EQS = (("update gate", C_GATE, r"$z_t = \sigma(x_t W_{xz} + h_{t-1} W_{hz} + b_z)$"),
+           ("reset gate", C_GATE, r"$r_t = \sigma(x_t W_{xr} + h_{t-1} W_{hr} + b_r)$"),
+           ("candidate", C_CAND,
+            r"$\tilde h_t = \tanh(x_t W_{xh} + (r_t \odot h_{t-1}) W_{hh} + b_h)$"),
+            ("memory = state", C_MEM,
+             r"$h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde h_t$"))
+
+
+def fig_lstm_equations(out: Path) -> None:
+    """The LSTM equations, coloured like the cell diagram."""
     fig, ax = plt.subplots(figsize=WIDE)
     blank(ax)
-    ax.text(0.02, 0.86, "update gate", fontsize=13, color=AMBER)
-    ax.text(0.22, 0.86, r"$z_t = \sigma(x_t W_{xz} + h_{t-1} W_{hz} + b_z)$  "
-            r"$\in (0, 1)$", fontsize=17)
-    ax.text(0.02, 0.66, "reset gate", fontsize=13, color=AMBER)
-    ax.text(0.22, 0.66, r"$r_t = \sigma(x_t W_{xr} + h_{t-1} W_{hr} + b_r)$", fontsize=17)
-    ax.text(0.02, 0.46, "candidate", fontsize=13, color=BLUE)
-    ax.text(0.22, 0.46, r"$\tilde h_t = \tanh(x_t W_{xh} + (r_t \odot h_{t-1}) W_{hh} "
-            r"+ b_h)$", fontsize=17)
-    ax.text(0.02, 0.24, "new state", fontsize=13, color=GREEN)
-    ax.text(0.22, 0.24, r"$h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde h_t$",
-            fontsize=19)
+    for k, (name, col, eq) in enumerate(LSTM_EQS):
+        y = 0.92 - 0.15 * k
+        ax.text(0.02, y, name, fontsize=13, color=col, va="center")
+        ax.text(0.22, y, eq, fontsize=18 if k < 4 else 20, va="center", color=col)
+    ax.text(0.70, 0.92 - 0.15 * 4, "erase & write", fontsize=13, color=GREY,
+            va="center")
+    ax.text(0.70, 0.92 - 0.15 * 5, "hidden state is\npart of the memory", fontsize=13,
+            color=GREY, va="center")
+    ax.text(0.70, 0.92 - 0.15 * 1.0, "4 weight blocks",
+            fontsize=13, color=GREY, va="center")
+    save(fig, out, "lstm_equations")
+
+
+def fig_gru(out: Path) -> None:
+    """The GRU equations, coloured like the cell diagram."""
+    fig, ax = plt.subplots(figsize=WIDE)
+    blank(ax)
+    for k, (name, col, eq) in enumerate(GRU_EQS):
+        y = 0.86 - 0.2 * k
+        ax.text(0.02, y, name, fontsize=13, color=col, va="center")
+        ax.text(0.22, y, eq, fontsize=17 if k < 3 else 19, va="center", color=col)
     ax.text(0.22, 0.06, r"$z_t \approx 0$: copy the state unchanged $\Rightarrow$ the "
             "gradient flows back without shrinking", fontsize=13, color=GREY)
     save(fig, out, "gru")
+
+
+def fig_lstm_vs_gru_equations(out: Path) -> None:
+    """LSTM and GRU equations side by side, row by row."""
+    fig, ax = plt.subplots(figsize=WIDE)
+    blank(ax)
+    ax.text(0.13, 0.97, "LSTM", fontsize=15, color=INK)
+    ax.text(0.57, 0.97, "GRU", fontsize=15, color=INK)
+    rows = (("gates", LSTM_EQS[:3], GRU_EQS[:2]),
+            ("candidate", LSTM_EQS[3:4], GRU_EQS[2:3]),
+            ("memory", LSTM_EQS[4:5], GRU_EQS[3:4]),
+            ("state", LSTM_EQS[5:6], ()))
+    y = 0.86
+    for name, left, right in rows:
+        n = max(len(left), len(right))
+        ax.text(0.0, y - 0.065 * (n - 1) / 2 * 1.0, name, fontsize=12, color=GREY,
+                va="center")
+        for k, (_, col, eq) in enumerate(left):
+            ax.text(0.13, y - 0.085 * k, eq, fontsize=13.5, color=col, va="center")
+        for k, (_, col, eq) in enumerate(right):
+            ax.text(0.57, y - 0.085 * k, eq, fontsize=13.5, color=col, va="center")
+        if not right:
+            ax.text(0.57, y, "nothing: the state is the memory", fontsize=12.5,
+                    color=GREY, va="center")
+        y -= 0.085 * n + 0.07
+    ax.text(0.5, 0.0, r"the GRU ties erasing and writing: $f_t \leftrightarrow 1 - z_t$,  "
+            r"$i_t \leftrightarrow z_t$  ·  no output gate  ·  4 weight blocks $\to$ 3",
+            ha="center", fontsize=12.5, color=GREY)
+    save(fig, out, "lstm_vs_gru_equations")
+
+
+def fig_lstm_gradient(out: Path) -> None:
+    """One step back in time: through W_hh and tanh' (RNN), through f_t only (LSTM)."""
+    fig, ax = plt.subplots(figsize=WIDE)
+    blank(ax)
+    rows = ((0.78, "simple RNN", RED,
+             r"$h_t = \tanh(x_t W_{xh} + h_{t-1} W_{hh} + b)$",
+             r"$\dfrac{\partial h_t}{\partial h_{t-1}} = "
+             r"\mathrm{diag}(\tanh'(\cdot))\, W_{hh}^{\top}$",
+             "multiplied T times: vanishes or explodes"),
+            (0.36, "LSTM memory", C_MEM,
+             r"$c_t = f_t \odot c_{t-1} + i_t \odot \tilde c_t$",
+             r"$\dfrac{\partial c_t}{\partial c_{t-1}} = \mathrm{diag}(f_t)$",
+             "no W_hh, no tanh': stays ≈ 1 when f ≈ 1"))
+    for y, name, col, eq, grad, note in rows:
+        ax.text(0.0, y, name, fontsize=14, color=col, va="center")
+        ax.text(0.16, y + 0.07, eq, fontsize=18, va="center")
+        ax.text(0.16, y - 0.11, grad, fontsize=22, va="center", color=col)
+        ax.text(0.62, y - 0.11, note, fontsize=13.5, va="center", color=col)
+    ax.text(0.5, 0.0, "the network learns when to forget "
+            "(ignoring the indirect paths through the gates)", ha="center", fontsize=12.5,
+            color=GREY)
+    save(fig, out, "lstm_gradient")
 
 
 # ================================================================ III. next word
@@ -545,6 +719,30 @@ def fig_lm_shift(out: Path) -> None:
     ax.text(0.86, 0.5, "cross-entropy\nat every step", fontsize=13, color=RED,
             va="center")
     save(fig, out, "lm_shift")
+
+
+def fig_perplexity(out: Path) -> None:
+    """Perplexity = 1 / p(correct word): four models predicting 'the cat sat on the ___'."""
+    words = ["mat", "rug", "floor", "sofa", "bed", "table", "roof", "dog"]
+    rest = lambda p: [p / 6] * 6  # noqa: E731 - spread the rest over the other words
+    models = (("uniform", [1 / 8] * 8),
+              ("hesitates between 2", [0.5, 0.5] + [0.0] * 6),
+              ("sure and right", [1.0] + [0.0] * 7),
+              ("sure and wrong", [0.01, 0.9] + rest(0.09)))
+    fig, axes = plt.subplots(1, 4, figsize=(15, 4.4), sharey=True)
+    for ax, (title, p) in zip(axes, models):
+        ax.bar(words, p, color=[GREEN] + [GREY] * 7)
+        ppl = 1 / p[0]
+        ax.set_title(f"{title}\np(mat) = {p[0]:.3g}\nperplexity {ppl:.3g}",
+                     fontsize=12.5, color=RED if ppl > 10 else INK)
+        ax.tick_params(axis="x", labelrotation=90, labelsize=10.5)
+        ax.set_ylim(0, 1.05)
+    axes[0].set_ylabel("predicted p(next word)")
+    fig.suptitle("the cat sat on the ___      (the next word is 'mat')", fontsize=13.5,
+                 y=1.16)
+    fig.text(0.5, -0.2, "perplexity = 1 / p(correct word), averaged over the text "
+             "(geometric mean) = exp(cross-entropy)", ha="center", fontsize=13, color=GREY)
+    save(fig, out, "perplexity")
 
 
 def fig_onehot_cost(out: Path) -> None:
@@ -756,7 +954,9 @@ def fig_analogies(out: Path) -> None:
 FIGURES = (
     fig_sequences, fig_fixed_window, fig_rnn_cell, fig_rnn_unrolled, fig_rnn_tasks,
     fig_bptt, fig_vanishing, fig_vanishing_measured, fig_lstm_intuition, fig_gates,
-    fig_lstm_cell, fig_lstm_equations, fig_lstm_to_gru, fig_gru, fig_lm_shift, fig_onehot_cost,
+    fig_lstm_cell, fig_lstm_equations, fig_lstm_gradient, fig_lstm_to_gru, fig_gru_cell,
+    fig_gru, fig_lstm_vs_gru, fig_lstm_vs_gru_equations, fig_lm_shift, fig_perplexity,
+    fig_onehot_cost,
     fig_onehot_select, fig_cbow_recap, fig_lm_architecture, fig_results, fig_overlap,
     fig_analogies,
 )
