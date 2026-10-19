@@ -247,7 +247,7 @@ to erase is learned by gradient descent like any other weight.
 :::
 
 ## The LSTM cell
-<!-- the colors should carry more meaning; h_t-1 is missing arrows -->
+
 ![](img/lstm_cell.png)
 
 ::: notes
@@ -259,7 +259,7 @@ filtered by the output gate o. Two states go to the next step: c_t and h_t.
 :::
 
 ## LSTM: the equations
-<!-- same colors meaning -->
+
 ![](img/lstm_equations.png)
 
 ::: notes
@@ -270,16 +270,8 @@ Cummins (2000), and it is the one that makes LSTMs work in practice.
 :::
 
 ## Why the gradient survives
-<!-- use proper math display -->
-```text
-c_t = f_t * c_(t-1) + i_t * c~_t
-d c_t / d c_(t-1) = f_t
 
-```
-
-- No W_hh, no tanh' on the memory path
-- f ≈ 1: the gradient flows back unchanged
-- The network learns when to forget
+![](img/lstm_gradient.png)
 
 ::: notes
 Compare with the simple RNN, where each step back multiplies the gradient by W_hh
@@ -303,7 +295,17 @@ ignore the past (r ≈ 0) when something new starts. Chung et al. (2014) found n
 winner between the two.
 :::
 
-<!-- add a slide showing GRU as a diagram -->
+## The GRU cell
+
+![](img/gru_cell.png)
+
+::: notes
+Same colours as the LSTM. The top line is now the state itself: it plays the role of
+the LSTM memory. The update gate z feeds two branches: 1 − z multiplies the old state
+(keep), z multiplies the candidate (write) — erasing and writing are tied. The reset
+gate r filters h_{t-1} before the candidate sees it: r ≈ 0 means "start afresh". No
+output gate, no tanh on the way out: the state is shown as is.
+:::
 
 ## GRU: the equations
 
@@ -315,8 +317,28 @@ the gradient flows back without being multiplied by anything small: the memory l
 of the LSTM, without a separate memory.
 :::
 
-<!-- add a slide comparing GRU & LSTM diagrams -->
-<!-- add a slide comparing GRU & LSTM equations -->
+## LSTM vs GRU: the cells
+
+![](img/lstm_vs_gru.png)
+
+::: notes
+Same frame, same colours. Both keep a green line that is only multiplied by a gate
+and added to — that is what lets the gradient through. The LSTM has a separate memory
+c and shows part of it as h (output gate); the GRU merges them. The LSTM erases (f)
+and writes (i) independently; the GRU ties them (1 − z and z). The GRU's reset gate
+has no LSTM counterpart.
+:::
+
+## LSTM vs GRU: the equations
+
+![](img/lstm_vs_gru_equations.png)
+
+::: notes
+Row by row. Gates: three for the LSTM, two for the GRU. Candidate: the same tanh
+layer, except that the GRU's sees r ⊙ h_{t-1}. Memory update: f and i in the LSTM,
+1 − z and z in the GRU. State: the LSTM filters its memory through o and a tanh; the
+GRU has nothing to do. Four weight blocks against three: 25% fewer parameters.
+:::
 
 ## LSTM and GRU in PyTorch
 
@@ -333,6 +355,7 @@ out, h = gru(x)
 # LSTM W_hh: [1024, 256] (4 blocks)
 # GRU  h:    [1, 64, 256]
 # GRU  W_hh: [768, 256]  (3 blocks)
+
 ```
 
 - Parameters: LSTM 367k, GRU 275k, RNN 92k
@@ -356,8 +379,7 @@ the word that actually comes next. One sequence of 32 words gives 32 training
 examples, and no labels are needed: the text is its own supervision.
 :::
 
-## Measuring it: perplexity
-<!-- add a more visual explaination of perplexity -->
+## Perplexity
 ```text
 perplexity = exp(cross-entropy)
 
@@ -374,6 +396,18 @@ uniformly among 150 words. Accuracy (is the top word the right one?) is also
 reported, but it ignores how much probability the right word got. Caveat: a smaller
 vocabulary (more words mapped to UNK) makes the task easier, so perplexities are
 only comparable on the same vocabulary and the same test text.
+:::
+
+## Perplexity
+
+![](img/perplexity.png)
+
+::: notes
+For one word, perplexity is 1 / p(correct word). Uniform over 8 words: 8, the model
+hesitates between 8. Between 2 words: 2. Sure and right: 1, the best possible. Sure
+and wrong: 100 — a confident mistake costs far more than hesitation, which is why the
+cross-entropy (and so the perplexity) punishes over-confidence. Over a text, it is the
+geometric mean of 1 / p(correct word) over all positions, i.e. exp(cross-entropy).
 :::
 
 ## RNN: one-hot encodings vs embeddings
