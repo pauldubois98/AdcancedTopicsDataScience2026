@@ -58,3 +58,6 @@ Each week has a **lecture** (2.5h, slides/code along) and a **recitation** (1.5h
     - [Notebook - CBOW](Course08/cbow.ipynb)
     - [Notebook - CBOW with explainations](Course08/cbow-expl.ipynb)
     - [Notebook - Covariance](Course08/cov.ipynb)
+- Session 09: Linear vs Convolutional
+    - Slides([pptx](Course09/slides.pptx))
+    - [Notebook — Linear vs Convolutional](Course09/linear_vs_conv.ipynb)
