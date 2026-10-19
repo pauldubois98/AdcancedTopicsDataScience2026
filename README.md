@@ -54,3 +54,7 @@ Each week has a **lecture** (2.5h, slides/code along) and a **recitation** (1.5h
     - [Notebook class — Width vs Depth](Course07/width_vs_depth-class.ipynb)
     - [Notebook solutions — Width vs Depth](Course07/width_vs_depth-solutions.ipynb)
     - [Kaggle: 1D -> 1D](https://www.kaggle.com/competitions/nyu-2026-fitting-a-1-d-1-d-function-with-deep-learning)
+- Session 08: Continuous Bag Of Word (Guest lecture)
+    - [Notebook - CBOW](Course08/cbow.ipynb)
+    - [Notebook - CBOW with explainations](Course08/cbow-expl.ipynb)
+    - [Notebook - Covariance](Course08/cov.ipynb)
