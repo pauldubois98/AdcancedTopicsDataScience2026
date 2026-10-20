@@ -9,6 +9,10 @@ Applications transfers to finance, industry, climate, etc.
 
 Each week has a **lecture** (2.5h, slides/code along) and a **recitation** (1.5h, notebook), over 14.5 weeks.
 
+### Kaggle competitions
+- [Basic Deep Learning: fitting a noised 1D functions](https://www.kaggle.com/competitions/nyu-2026-fitting-a-1-d-1-d-function-with-deep-learning)
+- [Classic Deep Learning: binary image classification](https://www.kaggle.com/competitions/nyu-2026-binary-classification-glasses-no-glasses)
+
 ### Sessions
 
 - Session 1: What makes data science hard
@@ -61,6 +65,7 @@ Each week has a **lecture** (2.5h, slides/code along) and a **recitation** (1.5h
 - Session 09: Linear vs Convolutional
     - Slides([pptx](Course09/slides.pptx))
     - [Notebook — Linear vs Convolutional](Course09/linear_vs_conv.ipynb)
+    - [Kaggle: binary image classification](https://www.kaggle.com/competitions/nyu-2026-binary-classification-glasses-no-glasses)
 - Session 10: Recurrent Neural Networks
     - Slides([pptx](Course10/slides.pptx))
     - [Notebook — Predicting the next word with an RNN](Course10/rnn_next_word.ipynb)
