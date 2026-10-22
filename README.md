@@ -65,6 +65,8 @@ Each week has a **lecture** (2.5h, slides/code along) and a **recitation** (1.5h
 - Session 09: Linear vs Convolutional
     - Slides([pptx](Course09/slides.pptx))
     - [Notebook — Linear vs Convolutional](Course09/linear_vs_conv.ipynb)
+    - [Notebook class — Linear vs Convolutional](Course09/linear_vs_conv-class.ipynb)
+    - [Notebook solutions — Linear vs Convolutional](Course09/linear_vs_conv-solutions.ipynb)
     - [Kaggle: binary image classification](https://www.kaggle.com/competitions/nyu-2026-binary-classification-glasses-no-glasses)
 - Session 10: Recurrent Neural Networks
     - Slides([pptx](Course10/slides.pptx))
