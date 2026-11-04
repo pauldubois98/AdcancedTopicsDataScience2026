@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fc4c02">
+<title>Motion Recorder</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --panel: #f7f7fa;
+    --fg: #242428;
+    --muted: #6d6d78;
+    --line: #dfdfe8;
+    --brand: #fc4c02;
+    --brand-ink: #ffffff;
+    --brand-soft: #fff1ea;
+    --warn: #b23a00;
+    /* Plot series, validated with the dataviz palette checker */
+    --x: #eb6834;
+    --y: #2a78d6;
+    --z: #1baf7a;
+    --grid: #ececf1;
+  }
+  :root[data-theme="dark"] {
+    --bg: #121214;
+    --panel: #1d1d21;
+    --fg: #f0f0f3;
+    --muted: #a0a0ab;
+    --line: #33333a;
+    --brand-soft: #2b1a12;
+    --warn: #ff8a50;
+    --x: #d95926;
+    --y: #3987e5;
+    --z: #199e70;
+    --grid: #2a2a30;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--brand);
+    color: var(--brand-ink);
+    padding: 14px 16px;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: 0.2px;
+  }
+  #theme {
+    padding: 6px 12px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-ink);
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 999px;
+  }
+  main { max-width: 560px; margin: 0 auto; padding: 20px 16px 48px; }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin: 24px 0 10px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pills button {
+    padding: 10px 16px;
+    font: inherit;
+    font-weight: 600;
+    color: var(--fg);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+  }
+  .pills button[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+  .toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .toggle input { width: 22px; height: 22px; accent-color: var(--brand); }
+  .note {
+    margin-top: 20px;
+    padding: 12px 14px;
+    background: var(--brand-soft);
+    border-left: 4px solid var(--brand);
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  button.primary {
+    width: 100%;
+    margin-top: 20px;
+    padding: 16px;
+    font: inherit;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--brand-ink);
+    background: var(--brand);
+    border: 0;
+    border-radius: 8px;
+  }
+  button.secondary {
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px;
+    font: inherit;
+    font-weight: 700;
+    color: var(--brand);
+    background: transparent;
+    border: 2px solid var(--brand);
+    border-radius: 8px;
+  }
+  #status { margin-top: 20px; color: var(--muted); font-size: 15px; white-space: pre-line; }
+  #status.warn { color: var(--warn); }
+
+  .chart { margin-top: 18px; }
+  .chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .chart-title { font-weight: 700; font-size: 15px; }
+  .chart-unit { color: var(--muted); font-weight: 400; }
+  .legend { display: flex; gap: 12px; font-size: 13px; color: var(--muted); }
+  .legend span::before {
+    content: "";
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 5px;
+    border-radius: 2px;
+    background: var(--c);
+    vertical-align: -1px;
+  }
+  .readout { min-height: 18px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  canvas { display: block; width: 100%; height: 140px; touch-action: none; }
+
+  /* Recording screen: dark, and the whole screen is the stop button (long press) */
+  #recording {
+    position: fixed;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px;
+    background: #000;
+    color: #8a8a94;
+    text-align: center;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    /* Series colors stepped for the dark surface */
+    --bg: #000;
+    --x: #d95926;
+    --y: #3987e5;
+    --z: #199e70;
+    --grid: #1e1e22;
+    --muted: #8a8a94;
+  }
+  #recording.on { display: flex; }
+  #big { font-size: 56px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--brand); }
+  #small { font-size: 15px; font-variant-numeric: tabular-nums; }
+  #live { width: 100%; max-width: 560px; text-align: left; }
+  #recording .toggle { width: 100%; max-width: 560px; color: #c8c8d0; border-bottom-color: #222; }
+  #live[hidden] { display: none; }
+  #hold { margin-top: 16px; font-size: 14px; }
+  #bar { width: 200px; height: 4px; background: #222; border-radius: 2px; overflow: hidden; }
+  #barfill { width: 0; height: 100%; background: var(--brand); }
+</style>
+</head>
+<body>
+<header>Motion Recorder <button id="theme" aria-label="Switch theme"></button></header>
+<main>
+  <h2>Activity</h2>
+  <div class="pills" id="activities">
+    <button data-v="rest">rest</button>
+    <button data-v="walk">walk</button>
+    <button data-v="run">run</button>
+    <button data-v="stairs_up">stairs_up</button>
+    <button data-v="stairs_down">stairs_down</button>
+  </div>
+
+  <h2>Countdown before start</h2>
+  <div class="pills" id="countdowns">
+    <button data-v="0">none</button>
+    <button data-v="5">5 s</button>
+    <button data-v="10">10 s</button>
+  </div>
+  
+  <div class="note">
+    Hold the phone in your hand and keep this page open: recording stops if the screen locks or you switch app.
+    The <b>first second</b> and the <b>last 3 seconds</b> of each recording are dropped (phone handling and the hold to stop).
+  </div>
+  
+  <button id="start" class="primary">Start recording</button>
+  <button id="again" class="secondary" hidden>Download last recording again</button>
+  <div id="status"></div>
+  
+  <h2>Plots</h2>
+  <label class="toggle">Live plots while recording <input type="checkbox" id="livePlots"></label>
+  <label class="toggle">Plots of the recording when done <input type="checkbox" id="afterPlots" checked></label>
+
+  <div id="results"></div>
+</main>
+
+<div id="recording">
+  <div id="big">0:00</div>
+  <div id="small"></div>
+  <label class="toggle" id="liveToggleRow">Live plots <input type="checkbox" id="liveToggle"></label>
+  <div id="live" hidden></div>
+  <div id="hold">hold anywhere for 2 s to stop</div>
+  <div id="bar"><div id="barfill"></div></div>
+</div>
+
+<script>
+const HOLD_MS = 2000;
+// Same preprocessing as build.py, so recordings look like the test clips
+const RATE = 60; // Hz
+const TRIM_START = 1.0; // s dropped at the start (phone handling)
+const TRIM_END = 1.0 + HOLD_MS / 1000; // s dropped at the end (phone handling and the hold to stop)
+const SENSORS = ["acc", "grav", "gyro", "lin"];
+const COLUMNS = ["t", ...SENSORS.flatMap((s) => ["x", "y", "z"].map((a) => `${s}_${a}`)), "pitch", "roll"];
+const LIVE_WINDOW = 5; // s shown on the live plots
+
+// Plot panels: title, unit, CSV columns, legend labels
+const PANELS = [
+  { title: "Accelerometer", unit: "m/s²", cols: ["acc_x", "acc_y", "acc_z"] },
+  { title: "Gravity", unit: "m/s²", cols: ["grav_x", "grav_y", "grav_z"] },
+  { title: "Gyroscope", unit: "rad/s", cols: ["gyro_x", "gyro_y", "gyro_z"] },
+  { title: "Linear acceleration", unit: "m/s²", cols: ["lin_x", "lin_y", "lin_z"] },
+  { title: "Pitch and roll", unit: "°", cols: ["pitch", "roll"], labels: ["pitch", "roll"] },
+];
+
+const $ = (id) => document.getElementById(id);
+
+// Raw samples, one [t (s), x, y, z] array per sensor
+let raw = {};
+let count = 0;
+let startedAt = null;
+let hiddenCount = 0;
+let wakeLock = null;
+let recording = false;
+let tick = null;
+let liveFrame = null;
+let lastFile = null;
+let lastRows = null;
+
+// Pill groups and toggles, remembered between visits
+function pills(id, fallback) {
+  const group = $(id);
+  let value = fallback;
+  try { value = localStorage.getItem("rec_" + id) ?? fallback; } catch {}
+  const select = (v) => {
+    value = v;
+    for (const b of group.children) b.setAttribute("aria-pressed", String(b.dataset.v === v));
+    try { localStorage.setItem("rec_" + id, v); } catch {}
+  };
+  group.addEventListener("click", (e) => e.target.dataset.v && select(e.target.dataset.v));
+  select(value);
+  return () => value;
+}
+// Light by default, the choice is remembered
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  $("theme").textContent = theme === "dark" ? "☀ Light" : "☾ Dark";
+  try { localStorage.setItem("rec_theme", theme); } catch {}
+  if (lastRows && $("afterPlots").checked) showResults(lastRows);
+}
+$("theme").addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+
+const activity = pills("activities", "walk");
+const countdown = pills("countdowns", "0");
+for (const id of ["livePlots", "afterPlots"]) {
+  try {
+    const v = localStorage.getItem("rec_" + id);
+    if (v !== null) $(id).checked = v === "1";
+  } catch {}
+  $(id).addEventListener("change", () => {
+    try { localStorage.setItem("rec_" + id, $(id).checked ? "1" : "0"); } catch {}
+  });
+}
+$("afterPlots").addEventListener("change", () => {
+  if (!lastRows) return;
+  if ($("afterPlots").checked) showResults(lastRows);
+  else $("results").innerHTML = "";
+});
+$("liveToggle").addEventListener("change", () => {
+  $("livePlots").checked = $("liveToggle").checked;
+  $("livePlots").dispatchEvent(new Event("change"));
+  setupLive();
+});
+// A tap on the toggle must not start the hold to stop
+$("liveToggleRow").addEventListener("pointerdown", (e) => e.stopPropagation());
+
+function setStatus(text, warn = false) {
+  $("status").textContent = text;
+  $("status").className = warn ? "warn" : "";
+}
+
+function push(sensor, t, x, y, z) {
+  if (x == null || y == null || z == null) return;
+  raw[sensor].push([t, x, y, z]);
+}
+
+function onMotion(e) {
+  if (!recording) return;
+  const t = e.timeStamp / 1000;
+  const g = e.accelerationIncludingGravity || {};
+  const a = e.acceleration || {};
+  const r = e.rotationRate || {};
+  const deg = Math.PI / 180;
+  count++;
+  push("acc", t, g.x, g.y, g.z);
+  push("lin", t, a.x, a.y, a.z);
+  // Gravity is what the accelerometer measures on top of the linear acceleration
+  if (g.x != null && a.x != null) push("grav", t, g.x - a.x, g.y - a.y, g.z - a.z);
+  // rotationRate is in deg/s, beta around x, gamma around y, alpha around z (phyphox uses rad/s)
+  if (r.beta != null) push("gyro", t, r.beta * deg, r.gamma * deg, r.alpha * deg);
+}
+
+// Average the samples falling in each 1/RATE s bin, as bin_average in build.py
+function binAverage(samples) {
+  const out = [];
+  let bin = null;
+  let acc = null;
+  let n = 0;
+  for (const s of samples) {
+    const b = Math.floor(s[0] * RATE);
+    if (b !== bin) {
+      if (n) out.push(acc.map((v) => v / n));
+      bin = b;
+      acc = [0, 0, 0, 0];
+      n = 0;
+    }
+    for (let i = 0; i < 4; i++) acc[i] += s[i];
+    n++;
+  }
+  if (n) out.push(acc.map((v) => v / n));
+  return out;
+}
+
+// Linear interpolation of the sorted samples at the sorted times grid, clamped at both ends as np.interp
+function interp(grid, samples) {
+  const out = [];
+  let j = 0;
+  for (const t of grid) {
+    while (j < samples.length - 2 && samples[j + 1][0] < t) j++;
+    const [t0, ...v0] = samples[j];
+    const [t1, ...v1] = samples[Math.min(j + 1, samples.length - 1)];
+    const w = t1 > t0 ? Math.min(1, Math.max(0, (t - t0) / (t1 - t0))) : 0;
+    out.push(v0.map((v, i) => v + w * (v1[i] - v)));
+  }
+  return out;
+}
+
+// Returns the rows as numbers (null for a missing sensor), in COLUMNS order
+function preprocess() {
+  const available = SENSORS.filter((s) => raw[s].length > 1);
+  if (!available.includes("acc")) return null;
+  const first = raw.acc[0][0] + TRIM_START;
+  const last = raw.acc[raw.acc.length - 1][0] - TRIM_END;
+  const n = Math.floor((last - first) * RATE);
+  if (n <= 0) return null;
+  const grid = Array.from({ length: n }, (_, i) => first + i / RATE);
+  const values = {};
+  for (const s of available) values[s] = interp(grid, binAverage(raw[s]));
+  const rows = grid.map((_, i) => {
+    const row = [i / RATE];
+    for (const s of SENSORS) row.push(...(values[s] ? values[s][i] : [null, null, null]));
+    if (values.grav) {
+      // Same definition as build.py: phyphox pitch, roll is the angle of gravity in the (y, z) plane
+      const [gx, gy, gz] = values.grav[i];
+      const norm = Math.hypot(gx, gy, gz);
+      row.push(-Math.asin(gx / norm) * 180 / Math.PI, Math.atan2(gy, gz) * 180 / Math.PI);
+    } else {
+      row.push(null, null);
+    }
+    return row;
+  });
+  return { rows, missing: SENSORS.filter((s) => !values[s]), seconds: n / RATE };
+}
+
+function toCsv(rows) {
+  const cell = (v) => (v === null ? "" : v.toFixed(5));
+  return COLUMNS.join(",") + "\n" + rows.map((r) => r.map(cell).join(",")).join("\n") + "\n";
+}
+
+/* Plots: thin 2px lines, recessive grid, legend with labels, crosshair readout on the final plots */
+
+function makePanel(container, panel) {
+  const labels = panel.labels ?? ["x", "y", "z"];
+  const colors = ["--x", "--y", "--z"].slice(0, labels.length);
+  const el = document.createElement("div");
+  el.className = "chart";
+  el.innerHTML = `
+    <div class="chart-head">
+      <div class="chart-title">${panel.title} <span class="chart-unit">${panel.unit}</span></div>
+      <div class="legend">${labels.map((l, i) => `<span style="--c: var(${colors[i]})">${l}</span>`).join("")}</div>
+    </div>
+    <canvas></canvas>
+    <div class="readout"></div>`;
+  container.appendChild(el);
+  return { canvas: el.querySelector("canvas"), readout: el.querySelector(".readout"), colors, labels };
+}
+
+const PLOT_LEFT = 40; // px reserved for the y labels
+
+// t: times, series: one array of values per line; draws on the canvas at device resolution
+function drawChart(p, t, series, { tMin = t[0], tMax = t[t.length - 1], cursor = null } = {}) {
+  const { canvas, colors } = p;
+  const css = getComputedStyle(canvas);
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+  }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  const bottom = 18;
+  const top = 6;
+
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const s of series) for (const v of s) if (v !== null) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  if (!isFinite(lo)) return;
+  if (hi - lo < 1e-3) { lo -= 0.5; hi += 0.5; }
+  const pad = (hi - lo) * 0.08;
+  lo -= pad;
+  hi += pad;
+  const span = Math.max(tMax - tMin, 1e-6);
+  const X = (v) => PLOT_LEFT + ((v - tMin) / span) * (w - PLOT_LEFT - 4);
+  const Y = (v) => top + (1 - (v - lo) / (hi - lo)) * (h - top - bottom);
+
+  // Grid and axis labels
+  ctx.font = "11px system-ui, sans-serif";
+  ctx.fillStyle = css.getPropertyValue("--muted");
+  ctx.strokeStyle = css.getPropertyValue("--grid");
+  ctx.lineWidth = 1;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  for (let k = 0; k <= 2; k++) {
+    const v = lo + ((hi - lo) * k) / 2;
+    ctx.beginPath();
+    ctx.moveTo(PLOT_LEFT, Y(v));
+    ctx.lineTo(w, Y(v));
+    ctx.stroke();
+    const label = v.toFixed(Math.abs(hi - lo) < 3 ? 2 : 0).replace(/^-(0(\.0+)?)$/, "$1");
+    ctx.fillText(label, PLOT_LEFT - 6, Y(v));
+  }
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  const step = span > 20 ? 10 : span > 8 ? 2 : 1;
+  for (let s = Math.ceil(tMin / step) * step; s <= tMax; s += step) {
+    ctx.fillText(`${Math.round(s)} s`, X(s), h - bottom + 4);
+  }
+
+  // Lines
+  ctx.lineWidth = 2;
+  ctx.lineJoin = "round";
+  series.forEach((s, k) => {
+    ctx.strokeStyle = css.getPropertyValue(colors[k]);
+    ctx.beginPath();
+    let pen = false;
+    for (let i = 0; i < s.length; i++) {
+      if (s[i] === null || t[i] < tMin) { pen = false; continue; }
+      if (pen) ctx.lineTo(X(t[i]), Y(s[i]));
+      else ctx.moveTo(X(t[i]), Y(s[i]));
+      pen = true;
+    }
+    ctx.stroke();
+  });
+
+  // Crosshair at the hovered sample, with a ringed dot on each line
+  if (cursor !== null) {
+    ctx.strokeStyle = css.getPropertyValue("--muted");
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(X(t[cursor]), top);
+    ctx.lineTo(X(t[cursor]), h - bottom);
+    ctx.stroke();
+    series.forEach((s, k) => {
+      if (s[cursor] === null) return;
+      ctx.fillStyle = css.getPropertyValue(colors[k]);
+      ctx.strokeStyle = css.getPropertyValue("--bg");
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(X(t[cursor]), Y(s[cursor]), 4, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.stroke();
+    });
+  }
+}
+
+function showResults(rows) {
+  const box = $("results");
+  box.innerHTML = "";
+  const t = rows.map((r) => r[0]);
+  for (const panel of PANELS) {
+    const p = makePanel(box, panel);
+    const series = panel.cols.map((c) => rows.map((r) => r[COLUMNS.indexOf(c)]));
+    const draw = (cursor = null) => drawChart(p, t, series, { cursor });
+    const hover = (e) => {
+      const rect = p.canvas.getBoundingClientRect();
+      const frac = (e.clientX - rect.left - PLOT_LEFT) / (rect.width - PLOT_LEFT - 4);
+      const i = Math.max(0, Math.min(t.length - 1, Math.round(frac * (t.length - 1))));
+      draw(i);
+      const fmt = (v) => (v === null ? "n/a" : v.toFixed(2));
+      p.readout.textContent = `t ${t[i].toFixed(2)} s · ` + p.labels.map((l, k) => `${l} ${fmt(series[k][i])}`).join(" · ");
+    };
+    p.canvas.addEventListener("pointermove", hover);
+    p.canvas.addEventListener("pointerdown", hover);
+    p.canvas.addEventListener("pointerleave", () => { draw(); p.readout.textContent = ""; });
+    draw();
+  }
+}
+
+let livePanels = [];
+function setupLive() {
+  const box = $("live");
+  box.innerHTML = "";
+  livePanels = [];
+  $("liveToggle").checked = $("livePlots").checked;
+  box.hidden = !$("livePlots").checked;
+  if (box.hidden) return;
+  for (const [sensor, panel] of [["acc", PANELS[0]], ["gyro", PANELS[2]]]) {
+    livePanels.push({ sensor, ...makePanel(box, panel) });
+  }
+}
+
+// Raw samples of the last LIVE_WINDOW seconds, redrawn about 15 times per second
+function drawLive() {
+  if (!recording) return;
+  for (const p of livePanels) {
+    const s = raw[p.sensor];
+    if (s.length < 2) continue;
+    const t0 = s[0][0];
+    const tEnd = s[s.length - 1][0] - t0;
+    let i = s.length - 1;
+    while (i > 0 && s[i - 1][0] - t0 > tEnd - LIVE_WINDOW) i--;
+    const part = s.slice(i);
+    const t = part.map((r) => r[0] - t0);
+    const series = [1, 2, 3].map((k) => part.map((r) => r[k]));
+    drawChart(p, t, series, { tMin: Math.max(0, tEnd - LIVE_WINDOW), tMax: Math.max(LIVE_WINDOW, tEnd) });
+  }
+  liveFrame = setTimeout(() => requestAnimationFrame(drawLive), 66);
+}
+
+async function requestWakeLock() {
+  try {
+    wakeLock = await navigator.wakeLock.request("screen");
+  } catch {
+    wakeLock = null;
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (!recording) return;
+  if (document.visibilityState === "hidden") hiddenCount++;
+  else requestWakeLock();
+});
+
+function fmtTime(s) {
+  const m = Math.floor(s / 60);
+  return `${m}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+}
+
+function rawRate() {
+  const s = (performance.now() - startedAt) / 1000;
+  return s > 0 ? count / s : 0;
+}
+
+function updateScreen() {
+  $("big").textContent = fmtTime((performance.now() - startedAt) / 1000);
+  $("small").textContent = `${activity()} · ${count} samples · ${rawRate().toFixed(0)} Hz`;
+}
+
+function stamp(d) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}T${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+
+function download(file) {
+  const url = URL.createObjectURL(file.blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = file.name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+async function start() {
+  if (!window.isSecureContext) {
+    setStatus("This page must be opened over https, sensors are blocked otherwise.", true);
+    return;
+  }
+  if (!("DeviceMotionEvent" in window)) {
+    setStatus("This browser does not expose motion sensors.", true);
+    return;
+  }
+  // iOS asks for permission, and only from a button tap
+  if (typeof DeviceMotionEvent.requestPermission === "function") {
+    const answer = await DeviceMotionEvent.requestPermission().catch(() => "denied");
+    if (answer !== "granted") {
+      setStatus("Motion sensor permission was refused.", true);
+      return;
+    }
+  }
+
+  setStatus("");
+  $("results").innerHTML = "";
+  $("recording").classList.add("on");
+  await requestWakeLock();
+  try { await document.documentElement.requestFullscreen(); } catch {}
+  setupLive();
+
+  // Countdown, so the phone can be put in place before data starts
+  let left = Number(countdown());
+  while (left > 0) {
+    $("big").textContent = left;
+    $("small").textContent = "get in position";
+    await new Promise((r) => setTimeout(r, 1000));
+    left--;
+  }
+  navigator.vibrate?.(200);
+
+  raw = Object.fromEntries(SENSORS.map((s) => [s, []]));
+  count = 0;
+  hiddenCount = 0;
+  startedAt = performance.now();
+  recording = true;
+  window.addEventListener("devicemotion", onMotion);
+  tick = setInterval(updateScreen, 500);
+  updateScreen();
+  drawLive();
+
+  // No sample after 2 s means the sensors are not delivering (blocked or absent)
+  setTimeout(() => {
+    if (recording && count === 0) $("small").textContent = "no sensor data received!";
+  }, 2000);
+}
+
+function stop() {
+  recording = false;
+  window.removeEventListener("devicemotion", onMotion);
+  clearInterval(tick);
+  clearTimeout(liveFrame);
+  navigator.vibrate?.([100, 100, 100]);
+  wakeLock?.release().catch(() => {});
+  wakeLock = null;
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  $("recording").classList.remove("on");
+
+  const rate = rawRate();
+  const result = preprocess();
+  if (!result) {
+    setStatus(`Recording too short or no accelerometer data (more than ${TRIM_START + TRIM_END} s needed), nothing saved.`, true);
+    return;
+  }
+  const name = `${activity()}_${stamp(new Date())}.csv`;
+  lastFile = { name, blob: new Blob([toCsv(result.rows)], { type: "text/csv" }) };
+  download(lastFile);
+  $("again").hidden = false;
+
+  let msg = `Saved ${name}\n${fmtTime(result.seconds)} kept, sensors at ${rate.toFixed(0)} Hz resampled to ${RATE} Hz`;
+  const warn = hiddenCount > 0 || result.missing.length > 0;
+  if (result.missing.length) {
+    msg += `\nNot available on this phone/browser (empty columns): ${result.missing.join(", ")}.`;
+  }
+  if (hiddenCount > 0) {
+    msg += `\nWarning: the page was hidden ${hiddenCount} time(s), the file has gaps.`;
+  }
+  setStatus(msg, warn);
+  lastRows = result.rows;
+  if ($("afterPlots").checked) showResults(result.rows);
+}
+
+// Stop only on a long press, so an accidental touch does not end the recording
+let holdStart = null;
+let holdFrame = null;
+function holdLoop() {
+  const p = Math.min(1, (performance.now() - holdStart) / HOLD_MS);
+  $("barfill").style.width = `${p * 100}%`;
+  if (p >= 1) {
+    holdStart = null;
+    $("barfill").style.width = "0";
+    stop();
+    return;
+  }
+  holdFrame = requestAnimationFrame(holdLoop);
+}
+$("recording").addEventListener("pointerdown", () => {
+  if (!recording) return;
+  holdStart = performance.now();
+  holdFrame = requestAnimationFrame(holdLoop);
+});
+for (const ev of ["pointerup", "pointercancel", "pointerleave"]) {
+  $("recording").addEventListener(ev, () => {
+    cancelAnimationFrame(holdFrame);
+    holdStart = null;
+    $("barfill").style.width = "0";
+  });
+}
+
+let savedTheme = "light";
+try { savedTheme = localStorage.getItem("rec_theme") ?? "light"; } catch {}
+applyTheme(savedTheme);
+
+$("start").addEventListener("click", start);
+$("again").addEventListener("click", () => lastFile && download(lastFile));
+</script>
+</body>
+</html>
