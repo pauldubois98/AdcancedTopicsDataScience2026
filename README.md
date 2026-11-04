@@ -12,6 +12,7 @@ Each week has a **lecture** (2.5h, slides/code along) and a **recitation** (1.5h
 ### Kaggle competitions
 - [Basic Deep Learning: fitting a noised 1D functions](https://www.kaggle.com/competitions/nyu-2026-fitting-a-1-d-1-d-function-with-deep-learning)
 - [Classic Deep Learning: binary image classification](https://www.kaggle.com/competitions/nyu-2026-binary-classification-glasses-no-glasses)
+- [Applied Deep Learning: activity classification](https://www.kaggle.com/competitions/nyu-2026-activity-recognition-from-phone-sensors)
 
 ### Sessions
 
