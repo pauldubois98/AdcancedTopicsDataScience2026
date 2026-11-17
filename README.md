@@ -73,3 +73,7 @@ Each week has a **lecture** (2.5h, slides/code along) and a **recitation** (1.5h
 - Session 10: Recurrent Neural Networks
     - Slides([pptx](Course10/slides.pptx))
     - [Notebook — Predicting the next word with an RNN](Course10/rnn_next_word.ipynb)
+    - [Notebook solutions — Predicting the next word with an RNN](Course10/rnn_next_word-solutions.ipynb)
+- Session 11: Datasets & 1D Convolutions
+    - Slides([pptx](Course11/slides.pptx))
+    - [Notebook — 1D Convolutions](Course11/temporal_signal.ipynb)
